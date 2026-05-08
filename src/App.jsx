@@ -1,32 +1,35 @@
 import { useState, useEffect, useMemo } from 'react';
-import { DEFAULT_VEHICLES, BUSINESS_INFO } from './data';
+import { DEFAULT_VEHICLES, DEFAULT_BUSINESS_INFO } from './data';
 import { IOSDevice } from './IOSDevice';
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "admin123";
 
-const STORAGE_KEY = "domi_rent_vehicles_v1";
+const VEHICLES_KEY = "domi_rent_vehicles_v1";
+const BUSINESS_KEY = "domi_rent_business_v1";
+
 const loadVehicles = () => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(VEHICLES_KEY);
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return DEFAULT_VEHICLES;
 };
 const saveVehicles = (arr) => {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); } catch (e) {}
+  try { localStorage.setItem(VEHICLES_KEY, JSON.stringify(arr)); } catch (e) {}
+};
+
+const loadBusiness = () => {
+  try {
+    const raw = localStorage.getItem(BUSINESS_KEY);
+    if (raw) return { ...DEFAULT_BUSINESS_INFO, ...JSON.parse(raw) };
+  } catch (e) {}
+  return DEFAULT_BUSINESS_INFO;
+};
+const saveBusiness = (obj) => {
+  try { localStorage.setItem(BUSINESS_KEY, JSON.stringify(obj)); } catch (e) {}
 };
 
 const fmtMoney = (n) => `US$${Number(n).toLocaleString("en-US")}`;
-const daysBetween = (a, b) => {
-  if (!a || !b) return 0;
-  const d = Math.round((new Date(b) - new Date(a)) / 86400000);
-  return d > 0 ? d : 0;
-};
-const todayISO = () => new Date().toISOString().slice(0, 10);
-const addDaysISO = (n) => {
-  const d = new Date(); d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-};
 
 const Icon = ({ name, size = 20, color = "currentColor", strokeWidth = 2 }) => {
   const props = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: color, strokeWidth, strokeLinecap: "round", strokeLinejoin: "round" };
@@ -54,15 +57,13 @@ const Icon = ({ name, size = 20, color = "currentColor", strokeWidth = 2 }) => {
     plus: <><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
     edit: <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
     trash: <><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></>,
-    calendar: <><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>,
     user: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
     mail: <><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
     shield: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></>,
     award: <><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></>,
-    sparkle: <><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></>,
     image: <><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></>,
     lock: <><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>,
-    flag: <><path d="M4 22V4M4 4h12l-2 4 2 4H4"/></>
+    settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.6.24 1 .82 1 1.51H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
   };
   return <svg {...props}>{paths[name]}</svg>;
 };
@@ -71,13 +72,18 @@ const FlagStripe = ({ size = 18, className = "" }) => (
   <div className={`flag-stripe ${className}`} style={{ "--sz": size + "px" }} aria-hidden="true" />
 );
 
+const waLink = (number, text) =>
+  `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
+
 function App() {
   const [view, setView] = useState({ name: "home" });
   const [vehicles, setVehicles] = useState(loadVehicles);
+  const [businessInfo, setBusinessInfo] = useState(loadBusiness);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [filter, setFilter] = useState("Todos");
 
   useEffect(() => { saveVehicles(vehicles); }, [vehicles]);
+  useEffect(() => { saveBusiness(businessInfo); }, [businessInfo]);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") setView({ name: "home" }); };
@@ -85,9 +91,18 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const goto = (v) => { setView(v); window.scrollTo?.(0, 0); document.querySelector(".phone-scroll")?.scrollTo?.(0, 0); };
+  const goto = (v) => {
+    setView(v);
+    window.scrollTo?.(0, 0);
+    document.querySelector(".phone-scroll")?.scrollTo?.(0, 0);
+  };
 
-  const ctx = { vehicles, setVehicles, view, goto, filter, setFilter, adminUnlocked, setAdminUnlocked };
+  const ctx = {
+    vehicles, setVehicles,
+    businessInfo, setBusinessInfo,
+    view, goto, filter, setFilter,
+    adminUnlocked, setAdminUnlocked,
+  };
 
   return <DomiPhone ctx={ctx} />;
 }
@@ -98,8 +113,6 @@ function DomiPhone({ ctx }) {
     <div className="phone-scroll">
       {view.name === "home" && <HomeScreen ctx={ctx} />}
       {view.name === "vehicle" && <VehicleScreen ctx={ctx} vehicleId={view.id} />}
-      {view.name === "rent" && <RentScreen ctx={ctx} vehicleId={view.id} />}
-      {view.name === "confirm" && <ConfirmScreen ctx={ctx} booking={view.booking} />}
       {view.name === "admin" && <AdminScreen ctx={ctx} />}
       {view.name === "about" && <AboutScreen ctx={ctx} />}
     </div>
@@ -130,7 +143,7 @@ function DomiPhone({ ctx }) {
 }
 
 function HomeScreen({ ctx }) {
-  const { vehicles, goto, filter, setFilter } = ctx;
+  const { vehicles, goto, filter, setFilter, businessInfo: bi } = ctx;
   const [menu, setMenu] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -149,6 +162,7 @@ function HomeScreen({ ctx }) {
   }, [vehicles, filter, search]);
 
   const featured = vehicles.filter(v => v.featured && v.available);
+  const fleetCount = vehicles.length;
 
   return (
     <div className="home">
@@ -168,14 +182,14 @@ function HomeScreen({ ctx }) {
         </div>
 
         <div className="hero-content">
-          <img src="/assets/logo.png" alt="Domi Rent Car" className="hero-logo" />
-          <p className="hero-tagline">{BUSINESS_INFO.tagline}</p>
+          <img src="/assets/logo.png" alt={bi.name} className="hero-logo" />
+          <p className="hero-tagline">{bi.tagline}</p>
           <div className="hero-stats">
-            <div><strong>{BUSINESS_INFO.fleetSize}+</strong><span>VEHÍCULOS</span></div>
+            <div><strong>{fleetCount}</strong><span>VEHÍCULOS</span></div>
             <div className="divider" />
-            <div><strong>{BUSINESS_INFO.yearsInBusiness}</strong><span>AÑOS</span></div>
+            <div><strong>{bi.yearsInBusiness}</strong><span>AÑOS</span></div>
             <div className="divider" />
-            <div><strong>4.9★</strong><span>RATING</span></div>
+            <div><strong>{bi.rating}★</strong><span>RATING</span></div>
           </div>
         </div>
 
@@ -249,27 +263,27 @@ function HomeScreen({ ctx }) {
         <h3>¿Listo para arrancar?</h3>
         <p>Contáctanos directamente</p>
         <div className="contact-actions">
-          <a className="btn primary block" href={`https://wa.me/${BUSINESS_INFO.whatsapp}?text=${encodeURIComponent("Hola Domi Rent Car, quiero información sobre los vehículos disponibles.")}`} target="_blank" rel="noreferrer">
+          <a className="btn wa-primary block big" href={waLink(bi.whatsapp, `Hola ${bi.name}, quiero información sobre los vehículos disponibles.`)} target="_blank" rel="noreferrer">
             <Icon name="whatsapp" size={18} color="#fff" />
             <span>WHATSAPP</span>
           </a>
-          <a className="btn ghost-light block" href={`tel:${BUSINESS_INFO.phone.replace(/\s|\(|\)|-/g, "")}`}>
+          <a className="btn ghost-light block" href={`tel:${bi.phone.replace(/\s|\(|\)|-/g, "")}`}>
             <Icon name="phone" size={16} />
             <span>LLAMAR</span>
           </a>
         </div>
         <div className="contact-info">
-          <div><Icon name="pin" size={14} color="#E11D2A" /> <span>{BUSINESS_INFO.address}</span></div>
-          <div><Icon name="clock" size={14} color="#E11D2A" /> <span>{BUSINESS_INFO.hours}</span></div>
-          <div><Icon name="mail" size={14} color="#E11D2A" /> <span>{BUSINESS_INFO.email}</span></div>
+          <div><Icon name="pin" size={14} color="#E11D2A" /> <span>{bi.address}</span></div>
+          <div><Icon name="clock" size={14} color="#E11D2A" /> <span>{bi.hours}</span></div>
+          <div><Icon name="mail" size={14} color="#E11D2A" /> <span>{bi.email}</span></div>
         </div>
         <div className="footer-mark">
           <FlagStripe />
-          <small>© 2026 DOMI RENT CAR · TODOS LOS DERECHOS RESERVADOS</small>
+          <small>© 2026 {bi.name.toUpperCase()} · TODOS LOS DERECHOS RESERVADOS</small>
         </div>
       </section>
 
-      <FloatingWA />
+      <FloatingWA wa={bi.whatsapp} biName={bi.name} />
 
       {menu && <SideMenu onClose={() => setMenu(false)} ctx={ctx} />}
     </div>
@@ -330,7 +344,7 @@ function Perk({ icon, title, sub }) {
 }
 
 function SideMenu({ onClose, ctx }) {
-  const { goto } = ctx;
+  const { goto, businessInfo: bi } = ctx;
   const go = (v) => { onClose(); setTimeout(() => goto(v), 50); };
   return (
     <div className="side-menu-bg" onClick={onClose}>
@@ -342,13 +356,13 @@ function SideMenu({ onClose, ctx }) {
         <nav className="sm-nav">
           <button onClick={() => go({ name: "home" })}><Icon name="car" size={18} /> Catálogo</button>
           <button onClick={() => go({ name: "about" })}><Icon name="award" size={18} /> Sobre Nosotros</button>
-          <a href={`https://wa.me/${BUSINESS_INFO.whatsapp}`} target="_blank" rel="noreferrer"><Icon name="whatsapp" size={18} /> WhatsApp</a>
-          <a href={`tel:${BUSINESS_INFO.phone.replace(/\s|\(|\)|-/g, "")}`}><Icon name="phone" size={18} /> Llamar</a>
+          <a href={waLink(bi.whatsapp, `Hola ${bi.name}, quiero información.`)} target="_blank" rel="noreferrer"><Icon name="whatsapp" size={18} /> WhatsApp</a>
+          <a href={`tel:${bi.phone.replace(/\s|\(|\)|-/g, "")}`}><Icon name="phone" size={18} /> Llamar</a>
           <button onClick={() => go({ name: "admin" })}><Icon name="lock" size={18} /> Admin</button>
         </nav>
         <div className="sm-foot">
           <FlagStripe />
-          <small>{BUSINESS_INFO.address}</small>
+          <small>{bi.address}</small>
         </div>
       </div>
     </div>
@@ -356,13 +370,13 @@ function SideMenu({ onClose, ctx }) {
 }
 
 function VehicleScreen({ ctx, vehicleId }) {
-  const { vehicles, goto } = ctx;
+  const { vehicles, goto, businessInfo: bi } = ctx;
   const v = vehicles.find(x => x.id === vehicleId);
   const [imgIdx, setImgIdx] = useState(0);
 
   if (!v) return <div className="screen-pad">Vehículo no encontrado.</div>;
 
-  const waMsg = `Hola Domi Rent Car, me interesa el ${v.name} (${fmtMoney(v.pricePerDay)}/día). ¿Está disponible?`;
+  const waMsg = `Hola ${bi.name}, me interesa el ${v.name} (${fmtMoney(v.pricePerDay)}/día). ¿Está disponible?`;
 
   return (
     <div className="vdetail">
@@ -436,17 +450,17 @@ function VehicleScreen({ ctx, vehicleId }) {
       <div style={{ height: 110 }} />
 
       <div className="sticky-bar">
-        <a className="btn wa-btn" href={`https://wa.me/${BUSINESS_INFO.whatsapp}?text=${encodeURIComponent(waMsg)}`} target="_blank" rel="noreferrer" aria-label="WhatsApp">
-          <Icon name="whatsapp" size={20} color="#fff" />
-        </a>
-        <button
-          className={`btn primary block big ${!v.available ? "disabled" : ""}`}
-          disabled={!v.available}
-          onClick={() => v.available && ctx.goto({ name: "rent", id: v.id })}
+        <a
+          className={`btn wa-primary block big ${!v.available ? "disabled" : ""}`}
+          href={v.available ? waLink(bi.whatsapp, waMsg) : undefined}
+          target="_blank"
+          rel="noreferrer"
+          aria-disabled={!v.available}
+          onClick={(e) => { if (!v.available) e.preventDefault(); }}
         >
-          {v.available ? "RENTAR AHORA" : "NO DISPONIBLE"}
-          {v.available && <Icon name="chevronRight" size={18} />}
-        </button>
+          <Icon name="whatsapp" size={22} color="#fff" />
+          <span>{v.available ? "RENTAR POR WHATSAPP" : "NO DISPONIBLE"}</span>
+        </a>
       </div>
 
       <FloatingWA hide />
@@ -475,12 +489,12 @@ function Feature({ icon, label, labelText }) {
   );
 }
 
-function FloatingWA({ hide }) {
+function FloatingWA({ hide, wa, biName }) {
   if (hide) return null;
   return (
     <a
       className="fab-wa"
-      href={`https://wa.me/${BUSINESS_INFO.whatsapp}?text=${encodeURIComponent("Hola Domi Rent Car, quiero información sobre los vehículos.")}`}
+      href={waLink(wa, `Hola ${biName || ""}, quiero información sobre los vehículos.`)}
       target="_blank" rel="noreferrer"
       aria-label="Contactar por WhatsApp"
     >
@@ -489,345 +503,24 @@ function FloatingWA({ hide }) {
   );
 }
 
-function RentScreen({ ctx, vehicleId }) {
-  const { vehicles, goto } = ctx;
-  const v = vehicles.find(x => x.id === vehicleId);
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState({
-    pickup: todayISO(),
-    return: addDaysISO(3),
-    pickupTime: "10:00",
-    pickupPlace: "Oficina Principal",
-    delivery: false,
-    deliveryAddr: "",
-    name: "",
-    phone: "",
-    email: "",
-    license: "",
-    notes: "",
-    insurance: "basic",
-    extraDriver: false,
-    childSeat: false,
-    gps: false
-  });
-
-  if (!v) return null;
-
-  const days = daysBetween(form.pickup, form.return) || 1;
-  const baseTotal = v.pricePerDay * days;
-  const discount = days >= 30 ? 0.20 : days >= 7 ? 0.10 : 0;
-  const baseAfter = Math.round(baseTotal * (1 - discount));
-  const insurancePrice = form.insurance === "premium" ? 25 * days : form.insurance === "full" ? 45 * days : 0;
-  const extras = (form.extraDriver ? 10 * days : 0) + (form.childSeat ? 5 * days : 0) + (form.gps && !v.gps ? 8 * days : 0);
-  const delivery = form.delivery ? 25 : 0;
-  const total = baseAfter + insurancePrice + extras + delivery;
-
-  const update = (k, val) => setForm(f => ({ ...f, [k]: val }));
-
-  const stepValid = () => {
-    if (step === 1) return form.pickup && form.return && days > 0;
-    if (step === 2) return true;
-    if (step === 3) return form.name.trim() && form.phone.trim() && form.license.trim();
-    return true;
-  };
-
-  const submit = () => {
-    const booking = {
-      id: "BK" + Date.now().toString(36).toUpperCase(),
-      vehicle: v,
-      ...form, days, total, baseAfter, insurancePrice, extras, delivery
-    };
-    goto({ name: "confirm", booking });
-  };
-
-  return (
-    <div className="rent">
-      <div className="rent-top">
-        <button className="icon-btn solid" onClick={() => goto({ name: "vehicle", id: v.id })}><Icon name="back" size={18} color="#fff" /></button>
-        <div className="rent-title">
-          <small>RENTAR</small>
-          <strong>{v.name}</strong>
-        </div>
-        <div style={{ width: 36 }} />
-      </div>
-
-      <div className="progress">
-        {[1,2,3,4].map(s => (
-          <div key={s} className={`p-step ${step >= s ? "active" : ""} ${step === s ? "current" : ""}`}>
-            <span className="p-num">{step > s ? <Icon name="check" size={14} color="#fff" /> : s}</span>
-            <small>{["FECHAS","EXTRAS","DATOS","RESUMEN"][s-1]}</small>
-          </div>
-        ))}
-      </div>
-
-      <div className="rent-body">
-        {step === 1 && (
-          <div className="form">
-            <h3>📅 Fechas y entrega</h3>
-            <Field label="Fecha recogida">
-              <input type="date" value={form.pickup} min={todayISO()} onChange={e => update("pickup", e.target.value)} />
-            </Field>
-            <Field label="Hora recogida">
-              <input type="time" value={form.pickupTime} onChange={e => update("pickupTime", e.target.value)} />
-            </Field>
-            <Field label="Fecha devolución">
-              <input type="date" value={form.return} min={form.pickup} onChange={e => update("return", e.target.value)} />
-            </Field>
-            <Field label="Lugar de recogida">
-              <select value={form.pickupPlace} onChange={e => update("pickupPlace", e.target.value)}>
-                <option>Oficina Principal</option>
-                <option>Aeropuerto Las Américas (AILA)</option>
-                <option>Aeropuerto Punta Cana (PUJ)</option>
-                <option>Hotel / Otro lugar</option>
-              </select>
-            </Field>
-            <label className="check-row">
-              <input type="checkbox" checked={form.delivery} onChange={e => update("delivery", e.target.checked)} />
-              <span>Entrega a domicilio (+US$25)</span>
-            </label>
-            {form.delivery && (
-              <Field label="Dirección de entrega">
-                <input value={form.deliveryAddr} placeholder="Calle, número, sector, ciudad" onChange={e => update("deliveryAddr", e.target.value)} />
-              </Field>
-            )}
-
-            <div className="banner-info">
-              <strong>{days} {days === 1 ? "día" : "días"}</strong> · {fmtMoney(baseAfter)}{discount > 0 && <em> (−{discount*100}%)</em>}
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="form">
-            <h3>🛡️ Seguro y extras</h3>
-
-            <div className="insurance-list">
-              <InsuranceCard active={form.insurance === "basic"} onClick={() => update("insurance","basic")}
-                title="BÁSICO" sub="Incluido" price="0"
-                feats={["Responsabilidad civil","Asistencia 24/7"]} />
-              <InsuranceCard active={form.insurance === "premium"} onClick={() => update("insurance","premium")}
-                title="PREMIUM" sub="+US$25/día" price={25 * days}
-                feats={["Cobertura colisión","Cristales y llantas","Daños por terceros"]} />
-              <InsuranceCard active={form.insurance === "full"} onClick={() => update("insurance","full")}
-                title="FULL COVER" sub="+US$45/día" price={45 * days}
-                feats={["Cobertura total","Sin deducible","Robo y vandalismo","Vehículo de remplazo"]} highlight />
-            </div>
-
-            <h4 className="sub-h">Adicionales</h4>
-            <ExtraToggle on={form.extraDriver} onChange={v => update("extraDriver", v)} title="Conductor adicional" sub={`+US$10/día · ${fmtMoney(10*days)}`} />
-            <ExtraToggle on={form.childSeat} onChange={v => update("childSeat", v)} title="Silla para niño" sub={`+US$5/día · ${fmtMoney(5*days)}`} />
-            {!v.gps && (
-              <ExtraToggle on={form.gps} onChange={val => update("gps", val)} title="GPS Navegación" sub={`+US$8/día · ${fmtMoney(8*days)}`} />
-            )}
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="form">
-            <h3>👤 Tus datos</h3>
-            <Field label="Nombre completo *">
-              <input value={form.name} onChange={e => update("name", e.target.value)} placeholder="Juan Pérez" />
-            </Field>
-            <Field label="Teléfono / WhatsApp *">
-              <input value={form.phone} onChange={e => update("phone", e.target.value)} placeholder="+1 (809) 000-0000" />
-            </Field>
-            <Field label="Correo electrónico">
-              <input type="email" value={form.email} onChange={e => update("email", e.target.value)} placeholder="tu@email.com" />
-            </Field>
-            <Field label="Número de licencia *">
-              <input value={form.license} onChange={e => update("license", e.target.value)} placeholder="000-0000000-0" />
-            </Field>
-            <Field label="Notas adicionales">
-              <textarea value={form.notes} onChange={e => update("notes", e.target.value)} placeholder="Vuelo, requerimientos especiales, etc." rows={3} />
-            </Field>
-            <div className="legal">
-              <Icon name="shield" size={14} color="#E11D2A" />
-              <span>Tus datos están protegidos. Solo los usaremos para procesar tu renta.</span>
-            </div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className="form summary">
-            <h3>✅ Confirma tu reserva</h3>
-            <div className="sum-vehicle">
-              <div className="sv-img" style={{ backgroundImage: `url(${v.images[0]})` }} />
-              <div>
-                <strong>{v.name}</strong>
-                <small>{v.category} · {v.year}</small>
-              </div>
-            </div>
-
-            <div className="sum-block">
-              <SumRow label="Recogida" value={`${form.pickup} ${form.pickupTime}`} />
-              <SumRow label="Devolución" value={`${form.return}`} />
-              <SumRow label="Lugar" value={form.delivery ? `Domicilio: ${form.deliveryAddr || "—"}` : form.pickupPlace} />
-              <SumRow label="Cliente" value={form.name} />
-              <SumRow label="Teléfono" value={form.phone} />
-            </div>
-
-            <div className="sum-block">
-              <SumRow label={`${v.name} (${days} días)`} value={fmtMoney(baseAfter)} sub={discount > 0 ? `Descuento ${discount*100}% aplicado` : null} />
-              {insurancePrice > 0 && <SumRow label={`Seguro ${form.insurance.toUpperCase()}`} value={fmtMoney(insurancePrice)} />}
-              {form.extraDriver && <SumRow label="Conductor adicional" value={fmtMoney(10*days)} />}
-              {form.childSeat && <SumRow label="Silla para niño" value={fmtMoney(5*days)} />}
-              {form.gps && !v.gps && <SumRow label="GPS" value={fmtMoney(8*days)} />}
-              {form.delivery && <SumRow label="Entrega a domicilio" value={fmtMoney(25)} />}
-            </div>
-
-            <div className="total-row">
-              <span>TOTAL</span>
-              <strong>{fmtMoney(total)}</strong>
-            </div>
-            <small className="legal-text">El pago se procesa al recoger el vehículo. Recibirás confirmación por WhatsApp.</small>
-          </div>
-        )}
-      </div>
-
-      <div className="sticky-bar with-summary">
-        <div className="sb-summary">
-          <small>{days} {days === 1 ? "DÍA" : "DÍAS"} · TOTAL</small>
-          <strong>{fmtMoney(total)}</strong>
-        </div>
-        <div className="sb-actions">
-          {step > 1 && <button className="btn ghost-light" onClick={() => setStep(s => s - 1)}>ATRÁS</button>}
-          {step < 4 && <button className="btn primary" disabled={!stepValid()} onClick={() => stepValid() && setStep(s => s + 1)}>CONTINUAR <Icon name="chevronRight" size={16} /></button>}
-          {step === 4 && <button className="btn primary" onClick={submit}>CONFIRMAR <Icon name="check" size={16} /></button>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Field({ label, children }) {
-  return <label className="field"><small>{label}</small>{children}</label>;
-}
-
-function InsuranceCard({ active, onClick, title, sub, feats, highlight }) {
-  return (
-    <button type="button" className={`ins-card ${active ? "active" : ""} ${highlight ? "highlight" : ""}`} onClick={onClick}>
-      <div className="ic-head">
-        <div>
-          <strong>{title}</strong>
-          <small>{sub}</small>
-        </div>
-        <div className={`ic-radio ${active ? "on" : ""}`} />
-      </div>
-      <ul>
-        {feats.map((f,i) => <li key={i}><Icon name="check" size={12} color="#E11D2A" /> {f}</li>)}
-      </ul>
-    </button>
-  );
-}
-
-function ExtraToggle({ on, onChange, title, sub }) {
-  return (
-    <button type="button" className={`extra-toggle ${on ? "on" : ""}`} onClick={() => onChange(!on)}>
-      <div>
-        <strong>{title}</strong>
-        <small>{sub}</small>
-      </div>
-      <div className={`switch ${on ? "on" : ""}`}><span /></div>
-    </button>
-  );
-}
-
-function SumRow({ label, value, sub }) {
-  return (
-    <div className="sum-row">
-      <div>
-        <span>{label}</span>
-        {sub && <em>{sub}</em>}
-      </div>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function ConfirmScreen({ ctx, booking }) {
-  const { goto } = ctx;
-  if (!booking) return null;
-  const v = booking.vehicle;
-  const waMsg = encodeURIComponent(
-`🏁 *NUEVA RESERVA — DOMI RENT CAR*
-
-📋 Reserva: ${booking.id}
-🚗 Vehículo: ${v.name} (${v.year})
-📅 Recogida: ${booking.pickup} ${booking.pickupTime}
-📅 Devolución: ${booking.return}
-📍 Lugar: ${booking.delivery ? "Domicilio: " + booking.deliveryAddr : booking.pickupPlace}
-👤 Cliente: ${booking.name}
-📞 Tel: ${booking.phone}
-🪪 Licencia: ${booking.license}
-🛡️ Seguro: ${booking.insurance.toUpperCase()}
-
-💰 TOTAL: ${fmtMoney(booking.total)} (${booking.days} días)`
-  );
-
-  return (
-    <div className="confirm">
-      <div className="confirm-hero">
-        <div className="check-circle"><Icon name="check" size={42} color="#fff" strokeWidth={3} /></div>
-        <h1>¡RESERVA CONFIRMADA!</h1>
-        <p>Recibirás confirmación por WhatsApp en minutos.</p>
-        <div className="booking-id">RESERVA · <strong>{booking.id}</strong></div>
-      </div>
-
-      <div className="confirm-card">
-        <div className="cc-row">
-          <div className="cc-img" style={{ backgroundImage: `url(${v.images[0]})` }} />
-          <div>
-            <strong>{v.name}</strong>
-            <small>{v.category} · {v.year}</small>
-          </div>
-        </div>
-        <div className="cc-grid">
-          <div><small>RECOGIDA</small><strong>{booking.pickup}</strong><span>{booking.pickupTime}</span></div>
-          <div><small>DEVOLUCIÓN</small><strong>{booking.return}</strong><span>{booking.days} {booking.days===1?"día":"días"}</span></div>
-        </div>
-        <div className="cc-total">
-          <span>TOTAL</span><strong>{fmtMoney(booking.total)}</strong>
-        </div>
-      </div>
-
-      <div className="confirm-actions">
-        <a className="btn primary block big" href={`https://wa.me/${BUSINESS_INFO.whatsapp}?text=${waMsg}`} target="_blank" rel="noreferrer">
-          <Icon name="whatsapp" size={20} color="#fff" />
-          ENVIAR POR WHATSAPP
-        </a>
-        <button className="btn ghost-light block" onClick={() => goto({ name: "home" })}>
-          VOLVER AL CATÁLOGO
-        </button>
-      </div>
-
-      <div className="next-steps">
-        <h4>PRÓXIMOS PASOS</h4>
-        <div className="ns-item"><span>1</span><div><strong>Confirmación por WhatsApp</strong><small>Te contactaremos en menos de 15 minutos.</small></div></div>
-        <div className="ns-item"><span>2</span><div><strong>Documentos</strong><small>Trae tu licencia y un documento de identidad.</small></div></div>
-        <div className="ns-item"><span>3</span><div><strong>Recoger vehículo</strong><small>{booking.pickup} a las {booking.pickupTime}.</small></div></div>
-      </div>
-    </div>
-  );
-}
-
 function AboutScreen({ ctx }) {
-  const { goto } = ctx;
+  const { vehicles, goto, businessInfo: bi } = ctx;
   return (
     <div className="about">
       <div className="rent-top">
         <button className="icon-btn solid" onClick={() => goto({ name: "home" })}><Icon name="back" size={18} color="#fff" /></button>
-        <div className="rent-title"><small>SOBRE</small><strong>DOMI RENT CAR</strong></div>
+        <div className="rent-title"><small>SOBRE</small><strong>{bi.name}</strong></div>
         <div style={{ width: 36 }} />
       </div>
       <div className="about-hero">
         <img src="/assets/logo.png" alt="" />
-        <h2>Tu socio de confianza desde 2013</h2>
+        <h2>Tu socio de confianza</h2>
         <p>Somos la rent car preferida en República Dominicana, con la flota más exclusiva y el mejor servicio personalizado.</p>
       </div>
       <div className="about-stats">
-        <div><strong>{BUSINESS_INFO.fleetSize}+</strong><span>VEHÍCULOS</span></div>
-        <div><strong>{BUSINESS_INFO.happyClients.toLocaleString()}+</strong><span>CLIENTES FELICES</span></div>
-        <div><strong>{BUSINESS_INFO.yearsInBusiness}</strong><span>AÑOS</span></div>
+        <div><strong>{vehicles.length}</strong><span>VEHÍCULOS</span></div>
+        <div><strong>{Number(bi.happyClients).toLocaleString()}+</strong><span>CLIENTES FELICES</span></div>
+        <div><strong>{bi.yearsInBusiness}</strong><span>AÑOS</span></div>
       </div>
       <div className="about-block">
         <h3>NUESTRA MISIÓN</h3>
@@ -836,22 +529,24 @@ function AboutScreen({ ctx }) {
       <div className="about-block">
         <h3>CONTACTO</h3>
         <div className="ab-info">
-          <div><Icon name="pin" size={14} color="#E11D2A" /> {BUSINESS_INFO.address}</div>
-          <div><Icon name="clock" size={14} color="#E11D2A" /> {BUSINESS_INFO.hours}</div>
-          <div><Icon name="phone" size={14} color="#E11D2A" /> {BUSINESS_INFO.phone}</div>
-          <div><Icon name="mail" size={14} color="#E11D2A" /> {BUSINESS_INFO.email}</div>
+          <div><Icon name="pin" size={14} color="#E11D2A" /> {bi.address}</div>
+          <div><Icon name="clock" size={14} color="#E11D2A" /> {bi.hours}</div>
+          <div><Icon name="phone" size={14} color="#E11D2A" /> {bi.phone}</div>
+          <div><Icon name="mail" size={14} color="#E11D2A" /> {bi.email}</div>
         </div>
       </div>
-      <FloatingWA />
+      <FloatingWA wa={bi.whatsapp} biName={bi.name} />
     </div>
   );
 }
 
 function AdminScreen({ ctx }) {
-  const { vehicles, setVehicles, goto, adminUnlocked, setAdminUnlocked } = ctx;
+  const { vehicles, setVehicles, goto, adminUnlocked, setAdminUnlocked,
+          businessInfo, setBusinessInfo } = ctx;
   const [pwd, setPwd] = useState("");
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(null);
+  const [editingBusiness, setEditingBusiness] = useState(false);
 
   const tryLogin = () => {
     if (pwd === ADMIN_PASSWORD) { setAdminUnlocked(true); setError(""); }
@@ -874,6 +569,14 @@ function AdminScreen({ ctx }) {
         </div>
       </div>
     );
+  }
+
+  if (editingBusiness) {
+    return <BusinessEditor
+      info={businessInfo}
+      onClose={() => setEditingBusiness(false)}
+      onSave={(data) => { setBusinessInfo(data); setEditingBusiness(false); }}
+    />;
   }
 
   if (editing) {
@@ -922,6 +625,15 @@ function AdminScreen({ ctx }) {
 
       <div className="admin-section">
         <div className="as-head">
+          <h3>CONFIGURACIÓN</h3>
+        </div>
+        <button className="btn ghost-light block" onClick={() => setEditingBusiness(true)}>
+          <Icon name="settings" size={16} /> EDITAR INFORMACIÓN DEL NEGOCIO
+        </button>
+      </div>
+
+      <div className="admin-section">
+        <div className="as-head">
           <h3>CATÁLOGO ({vehicles.length})</h3>
           <button className="btn primary small" onClick={() => setEditing("new")}>
             <Icon name="plus" size={14} color="#fff" /> NUEVO
@@ -962,6 +674,103 @@ function AdminScreen({ ctx }) {
         </button>
       </div>
     </div>
+  );
+}
+
+function BusinessEditor({ info, onClose, onSave }) {
+  const [f, setF] = useState({ ...info });
+  const u = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const valid = f.name && f.whatsapp && f.phone;
+
+  return (
+    <div className="editor">
+      <div className="admin-top">
+        <button className="icon-btn solid" onClick={onClose}><Icon name="close" size={18} color="#fff" /></button>
+        <div className="rent-title"><small>EDITAR</small><strong>INFO NEGOCIO</strong></div>
+        <div style={{ width: 36 }} />
+      </div>
+
+      <div className="editor-body">
+        <h4>Identidad</h4>
+        <Field label="Nombre del negocio *">
+          <input value={f.name} onChange={e => u("name", e.target.value)} placeholder="Ej. Domi Rent Car" />
+        </Field>
+        <Field label="Tagline / Lema">
+          <input value={f.tagline} onChange={e => u("tagline", e.target.value)} placeholder="Frase corta de marca" />
+        </Field>
+
+        <h4>Contacto</h4>
+        <Field label="Teléfono *">
+          <input value={f.phone} onChange={e => u("phone", e.target.value)} placeholder="+1 (809) 000-0000" />
+        </Field>
+        <Field label="WhatsApp (solo dígitos, con código de país) *">
+          <input
+            value={f.whatsapp}
+            onChange={e => u("whatsapp", e.target.value.replace(/[^\d]/g, ""))}
+            placeholder="18095550199"
+          />
+          <small style={{ color: "var(--gray)", marginTop: 4, display: "block" }}>
+            Sin "+" ni espacios. Ej: 18095550199
+          </small>
+        </Field>
+        <Field label="Email">
+          <input type="email" value={f.email} onChange={e => u("email", e.target.value)} placeholder="info@negocio.com" />
+        </Field>
+        <Field label="Instagram">
+          <input value={f.instagram} onChange={e => u("instagram", e.target.value)} placeholder="@negocio" />
+        </Field>
+
+        <h4>Ubicación</h4>
+        <Field label="Dirección">
+          <input value={f.address} onChange={e => u("address", e.target.value)} placeholder="Av. ..., ciudad" />
+        </Field>
+        <Field label="Horario">
+          <input value={f.hours} onChange={e => u("hours", e.target.value)} placeholder="Lun–Sab 8AM–8PM · Dom 9AM–5PM" />
+        </Field>
+
+        <h4>Estadísticas (mostradas en home/about)</h4>
+        <div className="grid-2">
+          <Field label="Años en el negocio">
+            <input type="number" min="0" value={f.yearsInBusiness}
+              onChange={e => u("yearsInBusiness", +e.target.value)} />
+          </Field>
+          <Field label="Rating (★)">
+            <input type="number" step="0.1" min="0" max="5" value={f.rating}
+              onChange={e => u("rating", +e.target.value)} />
+          </Field>
+        </div>
+        <Field label="Clientes felices">
+          <input type="number" min="0" value={f.happyClients}
+            onChange={e => u("happyClients", +e.target.value)} />
+        </Field>
+        <small style={{ color: "var(--gray)", display: "block", marginTop: -8 }}>
+          El número de "vehículos" mostrado en la página principal se calcula automáticamente del catálogo.
+        </small>
+      </div>
+
+      <div className="sticky-bar">
+        <button className="btn ghost-light" onClick={onClose}>CANCELAR</button>
+        <button className="btn primary block" disabled={!valid} onClick={() => valid && onSave(f)}>
+          <Icon name="check" size={16} /> GUARDAR
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return <label className="field"><small>{label}</small>{children}</label>;
+}
+
+function ExtraToggle({ on, onChange, title, sub }) {
+  return (
+    <button type="button" className={`extra-toggle ${on ? "on" : ""}`} onClick={() => onChange(!on)}>
+      <div>
+        <strong>{title}</strong>
+        <small>{sub}</small>
+      </div>
+      <div className={`switch ${on ? "on" : ""}`}><span /></div>
+    </button>
   );
 }
 

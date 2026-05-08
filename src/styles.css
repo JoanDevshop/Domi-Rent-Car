@@ -64,6 +64,7 @@ button { cursor: pointer; }
   transition: transform .12s ease, box-shadow .15s ease, background .15s;
   user-select: none;
   white-space: nowrap;
+  text-decoration: none;
 }
 .btn:active { transform: translateY(1px); }
 .btn.primary {
@@ -94,6 +95,17 @@ button { cursor: pointer; }
   border-radius: 14px;
   flex-shrink: 0;
   box-shadow: 0 8px 18px rgba(37,211,102,.3);
+}
+.btn.wa-primary {
+  background: linear-gradient(135deg, #25D366, #128C7E);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(37,211,102,.3);
+  border: 0;
+}
+.btn.wa-primary:hover { filter: brightness(1.08); }
+.btn.wa-primary.disabled, .btn.wa-primary[disabled] {
+  background: var(--gray-2); color: var(--gray);
+  box-shadow: none; pointer-events: none;
 }
 
 .icon-btn {

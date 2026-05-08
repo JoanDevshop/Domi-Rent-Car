@@ -160,7 +160,7 @@ export const DEFAULT_VEHICLES = [
   }
 ];
 
-export const BUSINESS_INFO = {
+export const DEFAULT_BUSINESS_INFO = {
   name: "DOMI RENT CAR",
   tagline: "Maneja con estilo. Vive sin límites.",
   phone: "+1 (809) 555-0199",
@@ -170,6 +170,6 @@ export const BUSINESS_INFO = {
   hours: "Lun–Sab 8:00 AM – 8:00 PM · Dom 9:00 AM – 5:00 PM",
   instagram: "@domirentcar",
   yearsInBusiness: 12,
-  fleetSize: 50,
-  happyClients: 4800
+  happyClients: 4800,
+  rating: 4.9
 };
