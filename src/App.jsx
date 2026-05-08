@@ -1,33 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
-import { DEFAULT_VEHICLES, DEFAULT_BUSINESS_INFO } from './data';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { DEFAULT_BUSINESS_INFO } from './data';
 import { IOSDevice } from './IOSDevice';
-
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "admin123";
-
-const VEHICLES_KEY = "domi_rent_vehicles_v1";
-const BUSINESS_KEY = "domi_rent_business_v1";
-
-const loadVehicles = () => {
-  try {
-    const raw = localStorage.getItem(VEHICLES_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (e) {}
-  return DEFAULT_VEHICLES;
-};
-const saveVehicles = (arr) => {
-  try { localStorage.setItem(VEHICLES_KEY, JSON.stringify(arr)); } catch (e) {}
-};
-
-const loadBusiness = () => {
-  try {
-    const raw = localStorage.getItem(BUSINESS_KEY);
-    if (raw) return { ...DEFAULT_BUSINESS_INFO, ...JSON.parse(raw) };
-  } catch (e) {}
-  return DEFAULT_BUSINESS_INFO;
-};
-const saveBusiness = (obj) => {
-  try { localStorage.setItem(BUSINESS_KEY, JSON.stringify(obj)); } catch (e) {}
-};
+import {
+  fetchVehicles, upsertVehicle, deleteVehicle, setVehicleAvailability,
+  fetchBusinessInfo, updateBusinessInfo,
+  signIn, signOut, onAuthChange, getCurrentUser,
+  uploadVehicleImage, deleteVehicleImageByUrl,
+} from './api';
 
 const fmtMoney = (n) => `US$${Number(n).toLocaleString("en-US")}`;
 
@@ -64,6 +43,7 @@ const Icon = ({ name, size = 20, color = "currentColor", strokeWidth = 2 }) => {
     image: <><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></>,
     lock: <><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></>,
     settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.6.24 1 .82 1 1.51H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
+    upload: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></>,
   };
   return <svg {...props}>{paths[name]}</svg>;
 };
@@ -75,15 +55,40 @@ const FlagStripe = ({ size = 18, className = "" }) => (
 const waLink = (number, text) =>
   `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 
+const newVehicleId = () => "v" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
 function App() {
   const [view, setView] = useState({ name: "home" });
-  const [vehicles, setVehicles] = useState(loadVehicles);
-  const [businessInfo, setBusinessInfo] = useState(loadBusiness);
-  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [vehicles, setVehicles] = useState([]);
+  const [businessInfo, setBusinessInfo] = useState(DEFAULT_BUSINESS_INFO);
+  const [adminUser, setAdminUser] = useState(null);
   const [filter, setFilter] = useState("Todos");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
 
-  useEffect(() => { saveVehicles(vehicles); }, [vehicles]);
-  useEffect(() => { saveBusiness(businessInfo); }, [businessInfo]);
+  // Initial fetch
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [vs, bi, user] = await Promise.all([
+          fetchVehicles().catch(e => { console.error('[fetchVehicles]', e); return []; }),
+          fetchBusinessInfo().catch(e => { console.error('[fetchBusinessInfo]', e); return DEFAULT_BUSINESS_INFO; }),
+          getCurrentUser().catch(() => null),
+        ]);
+        if (!alive) return;
+        setVehicles(vs);
+        setBusinessInfo(bi);
+        setAdminUser(user);
+      } catch (e) {
+        if (alive) setLoadError(e.message || 'Error cargando datos');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    const unsub = onAuthChange((u) => setAdminUser(u));
+    return () => { alive = false; unsub?.(); };
+  }, []);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") setView({ name: "home" }); };
@@ -97,11 +102,48 @@ function App() {
     document.querySelector(".phone-scroll")?.scrollTo?.(0, 0);
   };
 
+  // Mutations centralized here. Optimistic + sync con DB.
+  const refreshVehicles = async () => {
+    try { setVehicles(await fetchVehicles()); } catch (e) { console.error(e); }
+  };
+
+  const saveVehicle = async (v) => {
+    const id = v.id || newVehicleId();
+    const payload = { ...v, id };
+    const saved = await upsertVehicle(payload);
+    setVehicles(prev => {
+      const exists = prev.some(x => x.id === id);
+      return exists ? prev.map(x => x.id === id ? saved : x) : [...prev, saved];
+    });
+    return saved;
+  };
+
+  const removeVehicle = async (id) => {
+    const v = vehicles.find(x => x.id === id);
+    await deleteVehicle(id);
+    setVehicles(prev => prev.filter(x => x.id !== id));
+    // limpia imágenes del bucket en background (best-effort)
+    if (v) v.images.forEach(url => { deleteVehicleImageByUrl(url).catch(() => {}); });
+  };
+
+  const toggleAvailability = async (id) => {
+    const v = vehicles.find(x => x.id === id);
+    if (!v) return;
+    const updated = await setVehicleAvailability(id, !v.available);
+    setVehicles(prev => prev.map(x => x.id === id ? updated : x));
+  };
+
+  const saveBusiness = async (b) => {
+    const saved = await updateBusinessInfo(b);
+    setBusinessInfo(saved);
+    return saved;
+  };
+
   const ctx = {
-    vehicles, setVehicles,
-    businessInfo, setBusinessInfo,
+    vehicles, businessInfo,
     view, goto, filter, setFilter,
-    adminUnlocked, setAdminUnlocked,
+    adminUser, loading, loadError,
+    saveVehicle, removeVehicle, toggleAvailability, saveBusiness, refreshVehicles,
   };
 
   return <DomiPhone ctx={ctx} />;
@@ -143,7 +185,7 @@ function DomiPhone({ ctx }) {
 }
 
 function HomeScreen({ ctx }) {
-  const { vehicles, goto, filter, setFilter, businessInfo: bi } = ctx;
+  const { vehicles, goto, filter, setFilter, businessInfo: bi, loading, loadError } = ctx;
   const [menu, setMenu] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -241,8 +283,14 @@ function HomeScreen({ ctx }) {
           {filtered.map(v => (
             <VehicleCard key={v.id} v={v} onClick={() => goto({ name: "vehicle", id: v.id })} />
           ))}
-          {filtered.length === 0 && (
-            <div className="empty">Sin resultados. Prueba otro filtro.</div>
+          {!loading && filtered.length === 0 && (
+            <div className="empty">Sin resultados.</div>
+          )}
+          {loading && filtered.length === 0 && (
+            <div className="empty">Cargando…</div>
+          )}
+          {loadError && (
+            <div className="empty" style={{ color: '#E11D2A' }}>Error: {loadError}</div>
           )}
         </div>
       </section>
@@ -267,7 +315,7 @@ function HomeScreen({ ctx }) {
             <Icon name="whatsapp" size={18} color="#fff" />
             <span>WHATSAPP</span>
           </a>
-          <a className="btn ghost-light block" href={`tel:${bi.phone.replace(/\s|\(|\)|-/g, "")}`}>
+          <a className="btn ghost-light block" href={`tel:${(bi.phone || '').replace(/\s|\(|\)|-/g, "")}`}>
             <Icon name="phone" size={16} />
             <span>LLAMAR</span>
           </a>
@@ -279,7 +327,7 @@ function HomeScreen({ ctx }) {
         </div>
         <div className="footer-mark">
           <FlagStripe />
-          <small>© 2026 {bi.name.toUpperCase()} · TODOS LOS DERECHOS RESERVADOS</small>
+          <small>© 2026 {(bi.name || '').toUpperCase()} · TODOS LOS DERECHOS RESERVADOS</small>
         </div>
       </section>
 
@@ -320,7 +368,7 @@ function VehicleCard({ v, onClick }) {
         <h3>{v.name}</h3>
         <div className="vcard-meta">
           <span><Icon name="seat" size={12} /> {v.seats}</span>
-          <span><Icon name="cog" size={12} /> {v.transmission.slice(0,4)}.</span>
+          <span><Icon name="cog" size={12} /> {(v.transmission || '').slice(0,4)}.</span>
           <span><Icon name="fuel" size={12} /> {v.fuel}</span>
         </div>
         <div className="vcard-price">
@@ -357,7 +405,7 @@ function SideMenu({ onClose, ctx }) {
           <button onClick={() => go({ name: "home" })}><Icon name="car" size={18} /> Catálogo</button>
           <button onClick={() => go({ name: "about" })}><Icon name="award" size={18} /> Sobre Nosotros</button>
           <a href={waLink(bi.whatsapp, `Hola ${bi.name}, quiero información.`)} target="_blank" rel="noreferrer"><Icon name="whatsapp" size={18} /> WhatsApp</a>
-          <a href={`tel:${bi.phone.replace(/\s|\(|\)|-/g, "")}`}><Icon name="phone" size={18} /> Llamar</a>
+          <a href={`tel:${(bi.phone || '').replace(/\s|\(|\)|-/g, "")}`}><Icon name="phone" size={18} /> Llamar</a>
           <button onClick={() => go({ name: "admin" })}><Icon name="lock" size={18} /> Admin</button>
         </nav>
         <div className="sm-foot">
@@ -541,31 +589,37 @@ function AboutScreen({ ctx }) {
 }
 
 function AdminScreen({ ctx }) {
-  const { vehicles, setVehicles, goto, adminUnlocked, setAdminUnlocked,
-          businessInfo, setBusinessInfo } = ctx;
+  const { vehicles, goto, adminUser, businessInfo,
+          saveVehicle, removeVehicle, toggleAvailability, saveBusiness } = ctx;
+  const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(null);
   const [editingBusiness, setEditingBusiness] = useState(false);
 
-  const tryLogin = () => {
-    if (pwd === ADMIN_PASSWORD) { setAdminUnlocked(true); setError(""); }
-    else setError("Contraseña incorrecta");
+  const tryLogin = async () => {
+    setError(""); setLoading(true);
+    try { await signIn(email, pwd); }
+    catch (e) { setError(e.message || "Error de login"); }
+    finally { setLoading(false); }
   };
 
-  if (!adminUnlocked) {
+  if (!adminUser) {
     return (
       <div className="admin-login">
         <button className="icon-btn solid login-back" onClick={() => goto({ name: "home" })}><Icon name="back" size={18} color="#fff" /></button>
         <div className="al-card">
           <div className="al-icon"><Icon name="lock" size={32} color="#fff" /></div>
           <h2>PANEL ADMIN</h2>
-          <p>Ingresa tu contraseña para gestionar el catálogo</p>
+          <p>Ingresa tus credenciales para gestionar el catálogo</p>
+          <input type="email" value={email} placeholder="Email" onChange={e => setEmail(e.target.value)} autoFocus />
           <input type="password" value={pwd} placeholder="Contraseña" onChange={e => setPwd(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && tryLogin()} autoFocus />
+            onKeyDown={e => e.key === "Enter" && tryLogin()} />
           {error && <div className="al-error">{error}</div>}
-          <button className="btn primary block big" onClick={tryLogin}>INGRESAR</button>
-          <small className="al-hint">Demo: admin123</small>
+          <button className="btn primary block big" onClick={tryLogin} disabled={loading || !email || !pwd}>
+            {loading ? "INGRESANDO…" : "INGRESAR"}
+          </button>
         </div>
       </div>
     );
@@ -575,7 +629,7 @@ function AdminScreen({ ctx }) {
     return <BusinessEditor
       info={businessInfo}
       onClose={() => setEditingBusiness(false)}
-      onSave={(data) => { setBusinessInfo(data); setEditingBusiness(false); }}
+      onSave={async (data) => { await saveBusiness(data); setEditingBusiness(false); }}
     />;
   }
 
@@ -583,16 +637,13 @@ function AdminScreen({ ctx }) {
     return <VehicleEditor
       vehicle={editing === "new" ? null : editing}
       onClose={() => setEditing(null)}
-      onSave={(data) => {
-        setVehicles(prev => {
-          if (editing === "new") return [...prev, { ...data, id: "v" + Date.now().toString(36) }];
-          return prev.map(v => v.id === editing.id ? { ...editing, ...data } : v);
-        });
+      onSave={async (data) => {
+        await saveVehicle({ ...(editing === "new" ? {} : editing), ...data });
         setEditing(null);
       }}
-      onDelete={editing !== "new" ? () => {
+      onDelete={editing !== "new" ? async () => {
         if (confirm(`¿Eliminar ${editing.name}?`)) {
-          setVehicles(prev => prev.filter(v => v.id !== editing.id));
+          await removeVehicle(editing.id);
           setEditing(null);
         }
       } : null}
@@ -611,7 +662,7 @@ function AdminScreen({ ctx }) {
       <div className="admin-top">
         <button className="icon-btn solid" onClick={() => goto({ name: "home" })}><Icon name="back" size={18} color="#fff" /></button>
         <div className="rent-title"><small>PANEL</small><strong>ADMIN</strong></div>
-        <button className="icon-btn ghost" onClick={() => { setAdminUnlocked(false); goto({ name: "home" }); }}>
+        <button className="icon-btn ghost" onClick={async () => { await signOut(); goto({ name: "home" }); }} title="Cerrar sesión">
           <Icon name="lock" size={18} color="#fff" />
         </button>
       </div>
@@ -652,26 +703,21 @@ function AdminScreen({ ctx }) {
                 </div>
               </div>
               <div className="ar-actions">
-                <button className="icon-btn alt" onClick={() => {
-                  setVehicles(prev => prev.map(x => x.id === v.id ? { ...x, available: !x.available } : x));
-                }} title={v.available ? "Marcar rentado" : "Marcar disponible"}>
+                <button className="icon-btn alt" onClick={() => toggleAvailability(v.id)} title={v.available ? "Marcar rentado" : "Marcar disponible"}>
                   <div className={`mini-switch ${v.available ? "on" : ""}`}><span /></div>
                 </button>
                 <button className="icon-btn alt" onClick={() => setEditing(v)}><Icon name="edit" size={16} /></button>
               </div>
             </div>
           ))}
+          {vehicles.length === 0 && (
+            <div className="empty">Catálogo vacío. Click en NUEVO para añadir el primer vehículo.</div>
+          )}
         </div>
       </div>
 
       <div className="admin-foot">
-        <button className="btn ghost-light block" onClick={() => {
-          if (confirm("¿Restablecer al catálogo de fábrica? Se perderán los cambios.")) {
-            setVehicles(DEFAULT_VEHICLES);
-          }
-        }}>
-          RESTABLECER CATÁLOGO
-        </button>
+        <small style={{ color: "var(--gray)" }}>Sesión: {adminUser?.email}</small>
       </div>
     </div>
   );
@@ -679,8 +725,18 @@ function AdminScreen({ ctx }) {
 
 function BusinessEditor({ info, onClose, onSave }) {
   const [f, setF] = useState({ ...info });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const u = (k, v) => setF(p => ({ ...p, [k]: v }));
   const valid = f.name && f.whatsapp && f.phone;
+
+  const submit = async () => {
+    if (!valid) return;
+    setSaving(true); setError("");
+    try { await onSave(f); }
+    catch (e) { setError(e.message || "Error guardando"); }
+    finally { setSaving(false); }
+  };
 
   return (
     <div className="editor">
@@ -744,14 +800,16 @@ function BusinessEditor({ info, onClose, onSave }) {
             onChange={e => u("happyClients", +e.target.value)} />
         </Field>
         <small style={{ color: "var(--gray)", display: "block", marginTop: -8 }}>
-          El número de "vehículos" mostrado en la página principal se calcula automáticamente del catálogo.
+          El número de "vehículos" en home se calcula automáticamente del catálogo.
         </small>
+
+        {error && <div className="al-error" style={{ marginTop: 12 }}>{error}</div>}
       </div>
 
       <div className="sticky-bar">
         <button className="btn ghost-light" onClick={onClose}>CANCELAR</button>
-        <button className="btn primary block" disabled={!valid} onClick={() => valid && onSave(f)}>
-          <Icon name="check" size={16} /> GUARDAR
+        <button className="btn primary block" disabled={!valid || saving} onClick={submit}>
+          <Icon name="check" size={16} /> {saving ? "GUARDANDO…" : "GUARDAR"}
         </button>
       </div>
     </div>
@@ -782,14 +840,41 @@ function VehicleEditor({ vehicle, onClose, onSave, onDelete }) {
     luggage: 3, ac: true, bluetooth: true, gps: false,
     power: "", engine: "", color: "", plate: "",
     available: true, featured: false, description: "",
-    images: ["https://images.unsplash.com/photo-1606152421802-db97b9c7a11b?w=1200&q=80"]
+    images: []
   });
+  const [saving, setSaving] = useState(false);
+  const [uploadingIdx, setUploadingIdx] = useState(null);
+  const [error, setError] = useState("");
+  const fileInputRef = useRef(null);
+
   const u = (k, v) => setF(p => ({ ...p, [k]: v }));
-  const updImg = (i, val) => setF(p => ({ ...p, images: p.images.map((x, ix) => ix === i ? val : x) }));
-  const addImg = () => setF(p => ({ ...p, images: [...p.images, ""] }));
   const removeImg = (i) => setF(p => ({ ...p, images: p.images.filter((_, ix) => ix !== i) }));
 
-  const valid = f.name && f.category && f.pricePerDay > 0 && f.images.length > 0 && f.images[0];
+  const onPickFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadingIdx(f.images.length);
+    setError("");
+    try {
+      const url = await uploadVehicleImage(file, f.id || 'tmp');
+      setF(p => ({ ...p, images: [...p.images, url] }));
+    } catch (err) {
+      setError(err.message || "Error subiendo imagen");
+    } finally {
+      setUploadingIdx(null);
+    }
+  };
+
+  const valid = f.name && f.category && f.pricePerDay > 0 && f.images.length > 0;
+
+  const submit = async () => {
+    if (!valid) return;
+    setSaving(true); setError("");
+    try { await onSave(f); }
+    catch (e) { setError(e.message || "Error guardando"); }
+    finally { setSaving(false); }
+  };
 
   return (
     <div className="editor">
@@ -803,18 +888,37 @@ function VehicleEditor({ vehicle, onClose, onSave, onDelete }) {
       </div>
 
       <div className="editor-body">
-        <h4>Imágenes</h4>
+        <h4>Imágenes ({f.images.length})</h4>
         <div className="img-list">
           {f.images.map((src, i) => (
             <div key={i} className="img-row">
-              <div className="ir-preview" style={{ backgroundImage: `url(${src})` }}>
-                {!src && <Icon name="image" size={20} color="#666" />}
+              <div className="ir-preview" style={{ backgroundImage: `url(${src})` }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <small style={{ color: "var(--gray)", wordBreak: "break-all", display: "block" }}>
+                  {src.length > 60 ? "…" + src.slice(-60) : src}
+                </small>
               </div>
-              <input value={src} placeholder="URL de imagen" onChange={e => updImg(i, e.target.value)} />
-              {f.images.length > 1 && <button className="icon-btn alt" onClick={() => removeImg(i)}><Icon name="trash" size={14} /></button>}
+              <button className="icon-btn alt" onClick={() => removeImg(i)}><Icon name="trash" size={14} /></button>
             </div>
           ))}
-          <button className="btn ghost-dark small block" onClick={addImg}><Icon name="plus" size={12} /> AGREGAR IMAGEN</button>
+          {uploadingIdx !== null && (
+            <div className="img-row">
+              <div className="ir-preview" />
+              <small>Subiendo…</small>
+            </div>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={onPickFile}
+          />
+          <button className="btn ghost-dark small block"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingIdx !== null}>
+            <Icon name="upload" size={14} /> {uploadingIdx !== null ? "SUBIENDO…" : "SUBIR FOTO"}
+          </button>
         </div>
 
         <h4>Información básica</h4>
@@ -872,12 +976,14 @@ function VehicleEditor({ vehicle, onClose, onSave, onDelete }) {
         <Field label="Texto de marketing">
           <textarea rows={4} value={f.description} onChange={e => u("description", e.target.value)} placeholder="Descripción del vehículo..." />
         </Field>
+
+        {error && <div className="al-error" style={{ marginTop: 12 }}>{error}</div>}
       </div>
 
       <div className="sticky-bar">
         <button className="btn ghost-light" onClick={onClose}>CANCELAR</button>
-        <button className="btn primary block" disabled={!valid} onClick={() => valid && onSave(f)}>
-          <Icon name="check" size={16} /> {isNew ? "CREAR" : "GUARDAR"}
+        <button className="btn primary block" disabled={!valid || saving} onClick={submit}>
+          <Icon name="check" size={16} /> {saving ? "GUARDANDO…" : (isNew ? "CREAR" : "GUARDAR")}
         </button>
       </div>
     </div>
