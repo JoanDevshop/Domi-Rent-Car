@@ -1301,12 +1301,205 @@ html, body, #root {
   max-width: 100%;
 }
 
-/* desktop nav y nuevas secciones invisibles en mobile (default) */
+/* ==========================================================
+   MOBILE BASE — clases nuevas del rediseño
+   (los overrides desktop están bajo @media min-width:900)
+   ========================================================== */
+
+/* nav superior solo en desktop */
 .top-nav { display: none; }
-.featured-section, .catalog-section, .why-section, .cta-banner, .site-footer {
-  /* en mobile usan los estilos previos (.section, .why, .contact, etc) — */
-  /* solo aplican estilos exclusivos de desktop bajo @media abajo */
+
+/* container utility — en mobile sin max-width */
+.container {
+  width: 100%;
+  padding: 0 20px;
 }
+
+/* HERO — clases nuevas */
+.hero-image {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(180deg, rgba(10,10,11,0.4) 0%, rgba(10,10,11,0.85) 70%, rgba(10,10,11,1) 100%),
+    url("https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=80");
+  background-size: cover;
+  background-position: center;
+  opacity: .55;
+}
+.hero-container {
+  position: relative;
+  z-index: 2;
+  padding: 0 20px;
+  width: 100%;
+}
+.hero-text {
+  text-align: center;
+  padding: 8px 0 6px;
+}
+.hero-eyebrow {
+  display: inline-block;
+  font-family: var(--header-fonts);
+  font-size: 10px;
+  letter-spacing: .2em;
+  color: var(--red);
+  margin-bottom: 14px;
+  padding: 6px 12px;
+  background: rgba(225,29,42,0.12);
+  border: 1px solid rgba(225,29,42,0.3);
+  border-radius: 4px;
+}
+.hero-text .hero-logo {
+  margin: 0 auto 12px;
+  display: block;
+}
+.hero-text .hero-tagline {
+  font-family: var(--header-fonts);
+  font-size: 22px;
+  line-height: 1.15;
+  letter-spacing: .04em;
+  color: var(--white);
+  margin: 0 0 10px;
+}
+.hero-subtitle {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--silver);
+  margin: 0 auto 20px;
+  max-width: 320px;
+}
+.hero-text .hero-stats {
+  margin: 18px 0 22px;
+}
+.hero-ctas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+.hero-ctas .btn { width: 100%; }
+
+/* SECCIONES nuevas — fallback mobile */
+.featured-section,
+.catalog-section,
+.why-section {
+  padding: 28px 0 8px;
+}
+.featured-section .container,
+.catalog-section .container,
+.why-section .container,
+.cta-banner .container,
+.site-footer .container {
+  padding: 0 20px;
+}
+.catalog-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.catalog-section .search-row { padding: 0; }
+.why-section { background: linear-gradient(180deg, var(--black) 0%, #060607 100%); padding-top: 28px; padding-bottom: 28px; }
+.why-section .why-grid { margin-top: 0; }
+
+/* CTA BANNER mobile */
+.cta-banner {
+  background: linear-gradient(135deg, rgba(225,29,42,0.95), rgba(140,8,15,0.95));
+  text-align: center;
+  padding: 40px 0;
+  color: var(--white);
+}
+.cta-banner h2 {
+  font-family: var(--header-fonts);
+  font-size: 28px;
+  letter-spacing: .04em;
+  margin: 0 0 10px;
+  line-height: 1.1;
+}
+.cta-banner p {
+  font-size: 14px;
+  color: rgba(255,255,255,.9);
+  margin: 0 0 20px;
+}
+.cta-banner .cta-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cta-banner .btn { width: 100%; }
+.cta-banner .btn.ghost-light {
+  background: rgba(0,0,0,.3);
+  border-color: rgba(255,255,255,.2);
+  color: var(--white);
+}
+
+/* FOOTER mobile */
+.site-footer {
+  background: #060607;
+  padding: 36px 0 20px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+.footer-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin-bottom: 24px;
+}
+.footer-col h4 {
+  font-family: var(--header-fonts);
+  font-size: 12px;
+  letter-spacing: .2em;
+  color: var(--white);
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--red);
+  display: inline-block;
+}
+.footer-col p {
+  color: var(--gray);
+  line-height: 1.6;
+  font-size: 13px;
+}
+.footer-col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.footer-col ul li {
+  color: var(--silver);
+  font-size: 13px;
+}
+.footer-col ul a {
+  color: var(--silver);
+  cursor: pointer;
+  text-decoration: none;
+}
+.footer-contact li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.5;
+}
+.footer-brand img {
+  width: 140px;
+  margin-bottom: 12px;
+}
+.footer-stripe { margin-top: 12px; }
+.footer-hours {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px !important;
+}
+.footer-bottom {
+  border-top: 1px solid rgba(255,255,255,.06);
+  padding-top: 16px;
+  text-align: center;
+  color: var(--gray);
+}
+.footer-bottom small { font-size: 11px; letter-spacing: .12em; }
 
 /* ==========================================================
    DESKTOP ≥900px — rediseño layout web
