@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { DEFAULT_BUSINESS_INFO } from './data';
-import { IOSDevice } from './IOSDevice';
 import {
   fetchVehicles, upsertVehicle, deleteVehicle, setVehicleAvailability,
   fetchBusinessInfo, updateBusinessInfo,
@@ -151,37 +150,16 @@ function App() {
 
 function DomiPhone({ ctx }) {
   const { view } = ctx;
-  const screen = (
-    <div className="phone-scroll">
-      {view.name === "home" && <HomeScreen ctx={ctx} />}
-      {view.name === "vehicle" && <VehicleScreen ctx={ctx} vehicleId={view.id} />}
-      {view.name === "admin" && <AdminScreen ctx={ctx} />}
-      {view.name === "about" && <AboutScreen ctx={ctx} />}
+  return (
+    <div className="app-shell">
+      <div className="phone-scroll">
+        {view.name === "home" && <HomeScreen ctx={ctx} />}
+        {view.name === "vehicle" && <VehicleScreen ctx={ctx} vehicleId={view.id} />}
+        {view.name === "admin" && <AdminScreen ctx={ctx} />}
+        {view.name === "about" && <AboutScreen ctx={ctx} />}
+      </div>
     </div>
   );
-
-  const [isDesktop, setIsDesktop] = useState(typeof window !== "undefined" ? window.innerWidth > 520 : false);
-  useEffect(() => {
-    const onR = () => setIsDesktop(window.innerWidth > 520);
-    window.addEventListener("resize", onR);
-    return () => window.removeEventListener("resize", onR);
-  }, []);
-
-  if (isDesktop) {
-    return (
-      <div style={{
-        minHeight: "100vh", background: "#0A0A0B",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: 24,
-        backgroundImage: "radial-gradient(circle at 20% 20%, rgba(225,29,42,0.15), transparent 50%), radial-gradient(circle at 80% 80%, rgba(225,29,42,0.1), transparent 50%)"
-      }}>
-        <IOSDevice width={402} height={874} dark>
-          {screen}
-        </IOSDevice>
-      </div>
-    );
-  }
-  return <div style={{ height: "100vh", background: "#0A0A0B" }}>{screen}</div>;
 }
 
 function HomeScreen({ ctx }) {

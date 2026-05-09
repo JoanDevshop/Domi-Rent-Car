@@ -1281,3 +1281,178 @@ textarea { resize: vertical; }
 }
 
 .screen-pad { padding: 80px 20px 20px; color: var(--gray); }
+
+/* ==========================================================
+   APP SHELL — full-page responsive (sin iOS frame)
+   ========================================================== */
+html, body, #root {
+  height: auto;
+  min-height: 100%;
+  background: var(--black);
+}
+.app-shell {
+  min-height: 100vh;
+  background: var(--black);
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(225,29,42,0.10), transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(225,29,42,0.06), transparent 50%);
+}
+.app-shell .phone-scroll {
+  height: auto;
+  min-height: 100vh;
+  overflow: visible;
+  max-width: 100%;
+}
+
+/* ==========================================================
+   TABLET ≥720px
+   ========================================================== */
+@media (min-width: 720px) {
+  .home, .about, .vdetail, .admin, .editor, .admin-login {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  .grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .why-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .hero { padding: 80px 28px 36px; }
+  .hero-logo { width: 240px; }
+  .hero-tagline { font-size: 17px; }
+  .hero-stats strong { font-size: 32px; }
+  .hero-stats span { font-size: 10px; }
+  .featured-card { flex: 0 0 60%; }
+  .vd-img-wrap { height: 380px; }
+  .contact-actions { flex-direction: row; }
+  .contact-actions .btn { flex: 1; }
+}
+
+/* ==========================================================
+   DESKTOP ≥1024px — layout principal
+   ========================================================== */
+@media (min-width: 1024px) {
+  .home, .about, .vdetail, .admin, .editor, .admin-login {
+    max-width: 1180px;
+  }
+
+  /* HERO más amplio y centrado */
+  .hero {
+    padding: 100px 40px 60px;
+    border-bottom-width: 6px;
+  }
+  .hero-logo { width: 320px; }
+  .hero-tagline { font-size: 20px; margin: 14px 0 28px; }
+  .hero-stats { gap: 32px; margin-top: 24px; }
+  .hero-stats strong { font-size: 44px; }
+  .hero-stats span { font-size: 11px; letter-spacing: .22em; }
+  .hero-stats .divider { height: 36px; }
+  .hero-cta-row { display: flex; justify-content: center; margin-top: 32px; }
+  .hero-cta-row .btn.block { width: auto; min-width: 280px; padding: 18px 36px; font-size: 18px; }
+
+  /* SEARCH centrado, más ancho */
+  .search-row { padding: 24px 40px 8px; }
+  .search { font-size: 16px; padding: 16px 20px; }
+
+  /* SECCIONES con más padding */
+  .section { padding: 32px 40px 16px; }
+  .section-head h2 { font-size: 28px; }
+  .section-sub { font-size: 13px; }
+
+  /* DESTACADOS como grid de 3 columnas */
+  .featured-rail {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    overflow: visible;
+    margin: 0;
+    padding: 4px 0 16px;
+    gap: 20px;
+  }
+  .featured-card { flex: unset; }
+  .featured-card:hover { transform: translateY(-3px); border-color: var(--red); }
+  .fc-img { height: 220px; }
+  .fc-body { padding: 18px 20px; }
+  .fc-body h3 { font-size: 19px; }
+  .fc-price strong { font-size: 26px; }
+
+  /* CHIPS centrados */
+  .chip-row {
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow: visible;
+    margin: 0 0 16px;
+    padding: 0 40px;
+  }
+  .chip { padding: 10px 18px; font-size: 13px; }
+
+  /* CATÁLOGO grid 3 columnas */
+  .grid { grid-template-columns: repeat(3, 1fr); gap: 22px; padding: 0 40px; }
+  .vcard:hover { transform: translateY(-3px); border-color: var(--red); cursor: pointer; }
+  .vcard-img { height: 180px; }
+  .vcard-body { padding: 16px 18px 18px; }
+  .vcard-body h3 { font-size: 17px; }
+  .vcard-price strong { font-size: 22px; }
+
+  /* WHY US grid 4 col */
+  .why { padding: 48px 40px; }
+  .why-grid { grid-template-columns: repeat(4, 1fr); gap: 20px; }
+
+  /* CONTACT más amplio */
+  .contact { padding: 48px 40px 60px; }
+  .contact h3 { font-size: 28px; }
+
+  /* DETALLE DE VEHÍCULO — gallery + info side by side */
+  .vd-gallery { display: grid; grid-template-columns: 1.4fr 0.6fr; gap: 0; align-items: start; }
+  .vd-img-wrap { height: 520px; }
+  .vd-thumbs {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(auto-fill, 100px);
+    gap: 8px;
+    overflow: visible;
+    padding: 12px;
+    max-height: 520px;
+  }
+  .vd-thumb { width: 100% !important; height: 100px !important; }
+  .vd-head { padding: 28px 40px; }
+  .vd-head h1 { font-size: 36px; }
+  .spec-grid { padding: 0 40px; grid-template-columns: repeat(4, 1fr) !important; gap: 14px; }
+  .vd-section { padding: 24px 40px; }
+  .vd-h { font-size: 16px; }
+  .vd-desc { font-size: 16px; line-height: 1.65; }
+
+  /* STICKY BAR estilo desktop — más ancho, centrado */
+  .sticky-bar {
+    max-width: 1180px;
+    left: 50% !important;
+    transform: translateX(-50%);
+    padding: 20px 40px;
+  }
+
+  /* ABOUT */
+  .about-hero { padding: 60px 40px 32px; }
+  .about-hero h2 { font-size: 32px; }
+  .about-hero p { font-size: 17px; max-width: 640px; margin: 12px auto 0; }
+  .about-stats { padding: 0 40px; gap: 24px; }
+  .about-stats strong { font-size: 40px; }
+  .about-block { padding: 28px 40px; }
+  .about-block h3 { font-size: 18px; }
+
+  /* ADMIN — más respiro */
+  .admin-stats { padding: 24px 40px; gap: 16px; }
+  .admin-section { padding: 24px 40px; }
+  .editor-body { padding: 24px 40px 100px; }
+  .editor-body .grid-2, .editor-body .grid-3 { gap: 16px; }
+  .admin-row { padding: 14px 16px; }
+  .ar-img { width: 80px !important; height: 60px !important; }
+
+  /* FAB WhatsApp posicionado mejor en desktop */
+  .fab-wa { right: 32px; bottom: 32px; width: 64px; height: 64px; }
+}
+
+/* ==========================================================
+   LARGE DESKTOP ≥1400px
+   ========================================================== */
+@media (min-width: 1400px) {
+  .grid { grid-template-columns: repeat(4, 1fr); }
+  .home, .about, .vdetail, .admin, .editor, .admin-login {
+    max-width: 1280px;
+  }
+}
