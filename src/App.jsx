@@ -166,6 +166,13 @@ function HomeScreen({ ctx }) {
   const { vehicles, goto, filter, setFilter, businessInfo: bi, loading, loadError } = ctx;
   const [menu, setMenu] = useState(false);
   const [search, setSearch] = useState("");
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const categories = useMemo(() => {
     const set = new Set(vehicles.map(v => v.category));
@@ -183,15 +190,46 @@ function HomeScreen({ ctx }) {
 
   const featured = vehicles.filter(v => v.featured && v.available);
   const fleetCount = vehicles.length;
+  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 
   return (
     <div className="home">
+      {/* DESKTOP NAVBAR (≥1024) — móvil ve .topbar dentro del hero */}
+      <nav className={`top-nav ${scrolled ? 'scrolled' : ''}`}>
+        <div className="nav-container">
+          <a className="nav-logo" onClick={() => goto({ name: 'home' })}>
+            <img src="/assets/logo.png" alt={bi.name} />
+          </a>
+          <div className="nav-links">
+            <a onClick={() => scrollTo('catalog-section')}>CATÁLOGO</a>
+            <a onClick={() => scrollTo('why-section')}>¿POR QUÉ?</a>
+            <a onClick={() => goto({ name: 'about' })}>NOSOTROS</a>
+            <a onClick={() => scrollTo('contact-section')}>CONTACTO</a>
+          </div>
+          <div className="nav-actions">
+            <a className="nav-phone" href={`tel:${(bi.phone || '').replace(/\s|\(|\)|-/g, "")}`}>
+              <Icon name="phone" size={14} /> {bi.phone}
+            </a>
+            <a className="btn wa-primary" href={waLink(bi.whatsapp, `Hola ${bi.name}, quiero información sobre los vehículos.`)} target="_blank" rel="noreferrer">
+              <Icon name="whatsapp" size={16} color="#fff" />
+              <span>WHATSAPP</span>
+            </a>
+            <button className="icon-btn alt nav-admin" onClick={() => goto({ name: 'admin' })} aria-label="Admin">
+              <Icon name="lock" size={14} />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* HERO */}
       <header className="hero">
         <div className="hero-bg" aria-hidden="true">
+          <div className="hero-image" />
           <div className="hero-flag" />
           <div className="hero-vignette" />
         </div>
 
+        {/* Mobile-only topbar */}
         <div className="topbar">
           <button className="icon-btn ghost" onClick={() => setMenu(true)} aria-label="Menú">
             <Icon name="menu" size={22} color="#fff" />
@@ -201,118 +239,186 @@ function HomeScreen({ ctx }) {
           </button>
         </div>
 
-        <div className="hero-content">
-          <img src="/assets/logo.png" alt={bi.name} className="hero-logo" />
-          <p className="hero-tagline">{bi.tagline}</p>
-          <div className="hero-stats">
-            <div><strong>{fleetCount}</strong><span>VEHÍCULOS</span></div>
-            <div className="divider" />
-            <div><strong>{bi.yearsInBusiness}</strong><span>AÑOS</span></div>
-            <div className="divider" />
-            <div><strong>{bi.rating}★</strong><span>RATING</span></div>
+        <div className="hero-container">
+          <div className="hero-text">
+            <span className="hero-eyebrow">RENT A CAR · REPÚBLICA DOMINICANA</span>
+            <img src="/assets/logo.png" alt={bi.name} className="hero-logo" />
+            <h1 className="hero-tagline">{bi.tagline}</h1>
+            <p className="hero-subtitle">Flota premium para negocios y placer. Reserva directo por WhatsApp en minutos, entrega a domicilio disponible.</p>
+            <div className="hero-stats">
+              <div><strong>{fleetCount}</strong><span>VEHÍCULOS</span></div>
+              <div className="divider" />
+              <div><strong>{bi.yearsInBusiness}</strong><span>AÑOS</span></div>
+              <div className="divider" />
+              <div><strong>{bi.rating}★</strong><span>RATING</span></div>
+            </div>
+            <div className="hero-ctas">
+              <a className="btn wa-primary big" href={waLink(bi.whatsapp, `Hola ${bi.name}, quiero información sobre los vehículos disponibles.`)} target="_blank" rel="noreferrer">
+                <Icon name="whatsapp" size={20} color="#fff" />
+                <span>RENTAR POR WHATSAPP</span>
+              </a>
+              <button className="btn ghost-light big" onClick={() => scrollTo('catalog-section')}>
+                VER CATÁLOGO
+                <Icon name="chevronRight" size={16} />
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div className="hero-cta-row">
-          <button className="btn primary block" onClick={() => document.getElementById("catalog-anchor")?.scrollIntoView({ behavior: "smooth" })}>
-            <span>VER CATÁLOGO</span>
-            <Icon name="chevronRight" size={18} />
-          </button>
         </div>
       </header>
 
-      <section className="search-row">
-        <input
-          className="search"
-          placeholder="Buscar marca, modelo o categoría..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-      </section>
-
+      {/* DESTACADOS */}
       {featured.length > 0 && (
-        <section className="section">
-          <div className="section-head">
-            <h2><span className="accent-bar" />DESTACADOS</h2>
-            <span className="section-sub">Lo mejor de la flota</span>
-          </div>
-          <div className="featured-rail">
-            {featured.map(v => (
-              <FeaturedCard key={v.id} v={v} onClick={() => goto({ name: "vehicle", id: v.id })} />
-            ))}
+        <section className="featured-section">
+          <div className="container">
+            <div className="section-head">
+              <h2><span className="accent-bar" />DESTACADOS</h2>
+              <span className="section-sub">Lo mejor de la flota</span>
+            </div>
+            <div className="featured-rail">
+              {featured.map(v => (
+                <FeaturedCard key={v.id} v={v} onClick={() => goto({ name: "vehicle", id: v.id })} />
+              ))}
+            </div>
           </div>
         </section>
       )}
 
-      <section className="section" id="catalog-anchor">
-        <div className="section-head">
-          <h2><span className="accent-bar" />CATÁLOGO COMPLETO</h2>
-          <span className="section-sub">{filtered.length} vehículos</span>
-        </div>
-        <div className="chip-row">
-          {categories.map(c => (
-            <button key={c} className={`chip ${filter === c ? "active" : ""}`} onClick={() => setFilter(c)}>
-              {c}
-            </button>
-          ))}
-        </div>
+      {/* CATÁLOGO */}
+      <section className="catalog-section" id="catalog-section">
+        <div className="container">
+          <div className="section-head">
+            <h2><span className="accent-bar" />CATÁLOGO COMPLETO</h2>
+            <span className="section-sub">{filtered.length} {filtered.length === 1 ? 'vehículo' : 'vehículos'}</span>
+          </div>
 
-        <div className="grid">
-          {filtered.map(v => (
-            <VehicleCard key={v.id} v={v} onClick={() => goto({ name: "vehicle", id: v.id })} />
-          ))}
-          {!loading && filtered.length === 0 && (
-            <div className="empty">Sin resultados.</div>
-          )}
-          {loading && filtered.length === 0 && (
-            <div className="empty">Cargando…</div>
-          )}
-          {loadError && (
-            <div className="empty" style={{ color: '#E11D2A' }}>Error: {loadError}</div>
-          )}
+          <div className="catalog-controls">
+            <div className="search-row">
+              <input
+                className="search"
+                placeholder="Buscar marca, modelo o categoría..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="chip-row">
+              {categories.map(c => (
+                <button key={c} className={`chip ${filter === c ? "active" : ""}`} onClick={() => setFilter(c)}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid">
+            {filtered.map(v => (
+              <VehicleCard key={v.id} v={v} onClick={() => goto({ name: "vehicle", id: v.id })} />
+            ))}
+            {!loading && filtered.length === 0 && (
+              <div className="empty">Sin resultados.</div>
+            )}
+            {loading && filtered.length === 0 && (
+              <div className="empty">Cargando…</div>
+            )}
+            {loadError && (
+              <div className="empty" style={{ color: '#E11D2A' }}>Error: {loadError}</div>
+            )}
+          </div>
         </div>
       </section>
 
-      <section className="section why">
-        <div className="section-head">
-          <h2><span className="accent-bar" />¿POR QUÉ DOMI?</h2>
-        </div>
-        <div className="why-grid">
-          <Perk icon="shield" title="100% Asegurado" sub="Cobertura total incluida" />
-          <Perk icon="bolt" title="Entrega Rápida" sub="En menos de 2 horas" />
-          <Perk icon="award" title="Flota Premium" sub="Vehículos modelo 2023+" />
-          <Perk icon="phone" title="Soporte 24/7" sub="WhatsApp directo" />
+      {/* WHY US */}
+      <section className="why-section" id="why-section">
+        <div className="container">
+          <div className="section-head centered">
+            <h2><span className="accent-bar" />¿POR QUÉ {(bi.name || 'DOMI').toUpperCase()}?</h2>
+            <span className="section-sub">Lo que nos diferencia</span>
+          </div>
+          <div className="why-grid">
+            <Perk icon="shield" title="100% Asegurado" sub="Cobertura total incluida en cada renta" />
+            <Perk icon="bolt" title="Entrega Rápida" sub="Tu vehículo listo en menos de 2 horas" />
+            <Perk icon="award" title="Flota Premium" sub="Vehículos modelo 2023+ en perfecto estado" />
+            <Perk icon="phone" title="Soporte 24/7" sub="WhatsApp directo, respuesta inmediata" />
+          </div>
         </div>
       </section>
 
-      <section className="contact">
-        <h3>¿Listo para arrancar?</h3>
-        <p>Contáctanos directamente</p>
-        <div className="contact-actions">
-          <a className="btn wa-primary block big" href={waLink(bi.whatsapp, `Hola ${bi.name}, quiero información sobre los vehículos disponibles.`)} target="_blank" rel="noreferrer">
-            <Icon name="whatsapp" size={18} color="#fff" />
-            <span>WHATSAPP</span>
-          </a>
-          <a className="btn ghost-light block" href={`tel:${(bi.phone || '').replace(/\s|\(|\)|-/g, "")}`}>
-            <Icon name="phone" size={16} />
-            <span>LLAMAR</span>
-          </a>
-        </div>
-        <div className="contact-info">
-          <div><Icon name="pin" size={14} color="#E11D2A" /> <span>{bi.address}</span></div>
-          <div><Icon name="clock" size={14} color="#E11D2A" /> <span>{bi.hours}</span></div>
-          <div><Icon name="mail" size={14} color="#E11D2A" /> <span>{bi.email}</span></div>
-        </div>
-        <div className="footer-mark">
-          <FlagStripe />
-          <small>© 2026 {(bi.name || '').toUpperCase()} · TODOS LOS DERECHOS RESERVADOS</small>
+      {/* CTA BANNER */}
+      <section className="cta-banner" id="contact-section">
+        <div className="container">
+          <div className="cta-content">
+            <h2>¿LISTO PARA ARRANCAR?</h2>
+            <p>Reserva tu vehículo ahora por WhatsApp. Sin formularios, sin esperas — respuesta inmediata.</p>
+            <div className="cta-actions">
+              <a className="btn wa-primary big" href={waLink(bi.whatsapp, `Hola ${bi.name}, quiero información sobre los vehículos disponibles.`)} target="_blank" rel="noreferrer">
+                <Icon name="whatsapp" size={20} color="#fff" />
+                <span>WHATSAPP DIRECTO</span>
+              </a>
+              <a className="btn ghost-light big" href={`tel:${(bi.phone || '').replace(/\s|\(|\)|-/g, "")}`}>
+                <Icon name="phone" size={16} />
+                <span>{bi.phone}</span>
+              </a>
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* FOOTER */}
+      <SiteFooter ctx={ctx} />
 
       <FloatingWA wa={bi.whatsapp} biName={bi.name} />
 
       {menu && <SideMenu onClose={() => setMenu(false)} ctx={ctx} />}
     </div>
+  );
+}
+
+function SiteFooter({ ctx }) {
+  const { businessInfo: bi, goto } = ctx;
+  return (
+    <footer className="site-footer">
+      <div className="container">
+        <div className="footer-grid">
+          <div className="footer-col footer-brand">
+            <img src="/assets/logo.png" alt={bi.name} />
+            <p>{bi.tagline}</p>
+            <div className="footer-stripe"><FlagStripe /></div>
+          </div>
+
+          <div className="footer-col">
+            <h4>NAVEGACIÓN</h4>
+            <ul>
+              <li><a onClick={() => document.getElementById('catalog-section')?.scrollIntoView({ behavior: 'smooth' })}>Catálogo</a></li>
+              <li><a onClick={() => document.getElementById('why-section')?.scrollIntoView({ behavior: 'smooth' })}>¿Por qué nosotros?</a></li>
+              <li><a onClick={() => goto({ name: 'about' })}>Sobre nosotros</a></li>
+              <li><a onClick={() => goto({ name: 'admin' })}>Admin</a></li>
+            </ul>
+          </div>
+
+          <div className="footer-col">
+            <h4>CONTACTO</h4>
+            <ul className="footer-contact">
+              <li><Icon name="pin" size={14} color="#E11D2A" /> {bi.address}</li>
+              <li><Icon name="phone" size={14} color="#E11D2A" /> {bi.phone}</li>
+              <li><Icon name="mail" size={14} color="#E11D2A" /> {bi.email}</li>
+              {bi.instagram && <li><Icon name="user" size={14} color="#E11D2A" /> {bi.instagram}</li>}
+            </ul>
+          </div>
+
+          <div className="footer-col">
+            <h4>HORARIO</h4>
+            <p className="footer-hours"><Icon name="clock" size={14} color="#E11D2A" /> {bi.hours}</p>
+            <a className="btn wa-primary block" href={waLink(bi.whatsapp, `Hola ${bi.name}, quiero información.`)} target="_blank" rel="noreferrer">
+              <Icon name="whatsapp" size={16} color="#fff" />
+              <span>ESCRÍBENOS</span>
+            </a>
+          </div>
+        </div>
+
+        <div className="footer-bottom">
+          <small>© 2026 {(bi.name || '').toUpperCase()} · TODOS LOS DERECHOS RESERVADOS</small>
+        </div>
+      </div>
+    </footer>
   );
 }
 
