@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# Lock file excluded — CF Workers Builds / Railway use npm ci on lock
+# which fails when the lock was generated on a different platform
+# (missing optional cross-platform binaries like @rollup/rollup-linux-*).
+# Without lock, builders use `npm install` which resolves fresh per platform.
+package-lock.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
