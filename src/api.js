@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const VEHICLE_BUCKET = 'vehicle-images';
+const VEHICLE_BUCKET = 'domirentcar';
 
 // ────────────────────────────────────────────────────────────
 // Mappers DB ↔ App  (snake_case ↔ camelCase)

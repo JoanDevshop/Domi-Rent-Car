@@ -117,22 +117,27 @@ create policy business_update_auth on public.business_info
   for update to authenticated using (true) with check (true);
 
 -- ────────────────────────────────────────────────────────────
--- Storage: políticas para bucket 'vehicle-images'
+-- Storage: políticas para bucket 'domirentcar'
 -- (crear el bucket primero desde Dashboard → Storage → New bucket,
 --  marcado como Public)
 -- ────────────────────────────────────────────────────────────
 drop policy if exists vehicle_images_read on storage.objects;
-create policy vehicle_images_read on storage.objects
-  for select using (bucket_id = 'vehicle-images');
-
 drop policy if exists vehicle_images_insert_auth on storage.objects;
-create policy vehicle_images_insert_auth on storage.objects
-  for insert to authenticated with check (bucket_id = 'vehicle-images');
-
 drop policy if exists vehicle_images_update_auth on storage.objects;
-create policy vehicle_images_update_auth on storage.objects
-  for update to authenticated using (bucket_id = 'vehicle-images');
-
 drop policy if exists vehicle_images_delete_auth on storage.objects;
-create policy vehicle_images_delete_auth on storage.objects
-  for delete to authenticated using (bucket_id = 'vehicle-images');
+
+drop policy if exists domirentcar_read on storage.objects;
+create policy domirentcar_read on storage.objects
+  for select using (bucket_id = 'domirentcar');
+
+drop policy if exists domirentcar_insert_auth on storage.objects;
+create policy domirentcar_insert_auth on storage.objects
+  for insert to authenticated with check (bucket_id = 'domirentcar');
+
+drop policy if exists domirentcar_update_auth on storage.objects;
+create policy domirentcar_update_auth on storage.objects
+  for update to authenticated using (bucket_id = 'domirentcar');
+
+drop policy if exists domirentcar_delete_auth on storage.objects;
+create policy domirentcar_delete_auth on storage.objects
+  for delete to authenticated using (bucket_id = 'domirentcar');
