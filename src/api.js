@@ -157,6 +157,14 @@ export async function signIn(email, password) {
   return data.user;
 }
 
+// Sesión anónima — usada por el flujo admin con password local.
+// Requiere habilitar "Anonymous sign-ins" en Supabase Auth → Settings.
+export async function signInAnonymous() {
+  const { data, error } = await supabase.auth.signInAnonymously();
+  if (error) throw error;
+  return data.user;
+}
+
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;

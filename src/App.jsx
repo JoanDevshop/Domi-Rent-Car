@@ -3,9 +3,11 @@ import { DEFAULT_BUSINESS_INFO } from './data';
 import {
   fetchVehicles, upsertVehicle, deleteVehicle, setVehicleAvailability,
   fetchBusinessInfo, updateBusinessInfo,
-  signIn, signOut, onAuthChange, getCurrentUser,
+  signInAnonymous, signOut, onAuthChange, getCurrentUser,
   uploadVehicleImage, deleteVehicleImageByUrl,
 } from './api';
+
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "123admin";
 
 const fmtMoney = (n) => `US$${Number(n).toLocaleString("en-US")}`;
 
@@ -675,7 +677,6 @@ function AboutScreen({ ctx }) {
 function AdminScreen({ ctx }) {
   const { vehicles, goto, adminUser, businessInfo,
           saveVehicle, removeVehicle, toggleAvailability, saveBusiness } = ctx;
-  const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -684,8 +685,19 @@ function AdminScreen({ ctx }) {
 
   const tryLogin = async () => {
     setError(""); setLoading(true);
-    try { await signIn(email, pwd); }
-    catch (e) { setError(e.message || "Error de login"); }
+    try {
+      if (pwd !== ADMIN_PASSWORD) throw new Error("Contraseña incorrecta");
+      await signInAnonymous();
+    }
+    catch (e) {
+      const msg = e.message || "Error de login";
+      // Mensaje útil si Supabase no tiene anonymous habilitado
+      if (msg.toLowerCase().includes('anonymous') || msg.toLowerCase().includes('disabled')) {
+        setError("Habilita 'Anonymous sign-ins' en Supabase → Authentication → Settings.");
+      } else {
+        setError(msg);
+      }
+    }
     finally { setLoading(false); }
   };
 
@@ -696,12 +708,12 @@ function AdminScreen({ ctx }) {
         <div className="al-card">
           <div className="al-icon"><Icon name="lock" size={32} color="#fff" /></div>
           <h2>PANEL ADMIN</h2>
-          <p>Ingresa tus credenciales para gestionar el catálogo</p>
-          <input type="email" value={email} placeholder="Email" onChange={e => setEmail(e.target.value)} autoFocus />
-          <input type="password" value={pwd} placeholder="Contraseña" onChange={e => setPwd(e.target.value)}
+          <p>Ingresa la contraseña para gestionar el catálogo</p>
+          <input type="password" value={pwd} placeholder="Contraseña" autoFocus
+            onChange={e => setPwd(e.target.value)}
             onKeyDown={e => e.key === "Enter" && tryLogin()} />
           {error && <div className="al-error">{error}</div>}
-          <button className="btn primary block big" onClick={tryLogin} disabled={loading || !email || !pwd}>
+          <button className="btn primary block big" onClick={tryLogin} disabled={loading || !pwd}>
             {loading ? "INGRESANDO…" : "INGRESAR"}
           </button>
         </div>
@@ -750,6 +762,7 @@ function AdminScreen({ ctx }) {
           <Icon name="lock" size={18} color="#fff" />
         </button>
       </div>
+
 
       <div className="admin-stats">
         <div className="as-card"><small>TOTAL</small><strong>{stats.total}</strong></div>
