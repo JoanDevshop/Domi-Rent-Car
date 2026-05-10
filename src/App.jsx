@@ -5,9 +5,40 @@ import {
   fetchBusinessInfo, updateBusinessInfo,
   signInAnonymous, signOut, onAuthChange, getCurrentUser,
   uploadVehicleImage, deleteVehicleImageByUrl,
+  fetchAppUsersForLogin, fetchAppUsers, createAppUser, updateAppUser, deleteAppUser,
+  verifyPassword,
 } from './api';
 
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || "123admin";
+// ────────────────────────────────────────────────────────────
+// Permisos por rol
+// ────────────────────────────────────────────────────────────
+const PERMS = {
+  owner:    { canEditBusiness: true,  canCrudVehicles: true,  canToggleAvail: true, canManageUsers: true  },
+  manager:  { canEditBusiness: true,  canCrudVehicles: true,  canToggleAvail: true, canManageUsers: false },
+  operator: { canEditBusiness: false, canCrudVehicles: false, canToggleAvail: true, canManageUsers: false },
+};
+const can = (user, action) => Boolean(user && PERMS[user.role]?.[action]);
+
+const ROLE_LABELS = {
+  owner: 'Owner (acceso total)',
+  manager: 'Manager (catálogo + info)',
+  operator: 'Operator (solo marcar disp/rentado)',
+};
+
+// ────────────────────────────────────────────────────────────
+// localStorage del app user
+// ────────────────────────────────────────────────────────────
+const APP_USER_KEY = 'domi_app_user_v1';
+const loadAppUser = () => {
+  try {
+    const raw = localStorage.getItem(APP_USER_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+};
+const saveAppUser = (u) => {
+  if (u) localStorage.setItem(APP_USER_KEY, JSON.stringify(u));
+  else localStorage.removeItem(APP_USER_KEY);
+};
 
 const fmtMoney = (n) => `US$${Number(n).toLocaleString("en-US")}`;
 
@@ -62,7 +93,8 @@ function App() {
   const [view, setView] = useState({ name: "home" });
   const [vehicles, setVehicles] = useState([]);
   const [businessInfo, setBusinessInfo] = useState(DEFAULT_BUSINESS_INFO);
-  const [adminUser, setAdminUser] = useState(null);
+  const [adminUser, setAdminUser] = useState(null);     // sesión Supabase (para RLS)
+  const [appUser, setAppUser] = useState(loadAppUser);  // usuario lógico con rol
   const [filter, setFilter] = useState("Todos");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -81,13 +113,21 @@ function App() {
         setVehicles(vs);
         setBusinessInfo(bi);
         setAdminUser(user);
+        // Si no hay sesión Supabase pero sí hay appUser local → limpiar local
+        if (!user && loadAppUser()) {
+          saveAppUser(null);
+          setAppUser(null);
+        }
       } catch (e) {
         if (alive) setLoadError(e.message || 'Error cargando datos');
       } finally {
         if (alive) setLoading(false);
       }
     })();
-    const unsub = onAuthChange((u) => setAdminUser(u));
+    const unsub = onAuthChange((u) => {
+      setAdminUser(u);
+      if (!u) { saveAppUser(null); setAppUser(null); }
+    });
     return () => { alive = false; unsub?.(); };
   }, []);
 
@@ -140,10 +180,13 @@ function App() {
     return saved;
   };
 
+  const setAndPersistAppUser = (u) => { saveAppUser(u); setAppUser(u); };
+
   const ctx = {
     vehicles, businessInfo,
     view, goto, filter, setFilter,
-    adminUser, loading, loadError,
+    adminUser, appUser, setAppUser: setAndPersistAppUser,
+    loading, loadError,
     saveVehicle, removeVehicle, toggleAvailability, saveBusiness, refreshVehicles,
   };
 
@@ -674,23 +717,32 @@ function AboutScreen({ ctx }) {
 }
 
 function AdminScreen({ ctx }) {
-  const { vehicles, goto, adminUser, businessInfo,
+  const { vehicles, goto, adminUser, appUser, setAppUser, businessInfo,
           saveVehicle, removeVehicle, toggleAvailability, saveBusiness } = ctx;
   const [pwd, setPwd] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(null);
   const [editingBusiness, setEditingBusiness] = useState(false);
+  const [editingUsers, setEditingUsers] = useState(false);
 
   const tryLogin = async () => {
     setError(""); setLoading(true);
     try {
-      if (pwd !== ADMIN_PASSWORD) throw new Error("Contraseña incorrecta");
+      const users = await fetchAppUsersForLogin();
+      if (!users || users.length === 0) {
+        throw new Error("No hay usuarios. Corre supabase/users-system.sql primero.");
+      }
+      let matched = null;
+      for (const u of users) {
+        if (await verifyPassword(pwd, u.passwordHash)) { matched = u; break; }
+      }
+      if (!matched) throw new Error("Contraseña incorrecta");
       await signInAnonymous();
+      setAppUser({ id: matched.id, name: matched.name, role: matched.role });
     }
     catch (e) {
       const msg = e.message || "Error de login";
-      // Mensaje útil si Supabase no tiene anonymous habilitado
       if (msg.toLowerCase().includes('anonymous') || msg.toLowerCase().includes('disabled')) {
         setError("Habilita 'Anonymous sign-ins' en Supabase → Authentication → Settings.");
       } else {
@@ -700,14 +752,14 @@ function AdminScreen({ ctx }) {
     finally { setLoading(false); }
   };
 
-  if (!adminUser) {
+  if (!adminUser || !appUser) {
     return (
       <div className="admin-login">
         <button className="icon-btn solid login-back" onClick={() => goto({ name: "home" })}><Icon name="back" size={18} color="#fff" /></button>
         <div className="al-card">
           <div className="al-icon"><Icon name="lock" size={32} color="#fff" /></div>
           <h2>PANEL ADMIN</h2>
-          <p>Ingresa la contraseña para gestionar el catálogo</p>
+          <p>Ingresa tu contraseña</p>
           <input type="password" value={pwd} placeholder="Contraseña" autoFocus
             onChange={e => setPwd(e.target.value)}
             onKeyDown={e => e.key === "Enter" && tryLogin()} />
@@ -725,6 +777,13 @@ function AdminScreen({ ctx }) {
       info={businessInfo}
       onClose={() => setEditingBusiness(false)}
       onSave={async (data) => { await saveBusiness(data); setEditingBusiness(false); }}
+    />;
+  }
+
+  if (editingUsers) {
+    return <UsersEditor
+      currentUser={appUser}
+      onClose={() => setEditingUsers(false)}
     />;
   }
 
@@ -756,12 +815,18 @@ function AdminScreen({ ctx }) {
     <div className="admin">
       <div className="admin-top">
         <button className="icon-btn solid" onClick={() => goto({ name: "home" })}><Icon name="back" size={18} color="#fff" /></button>
-        <div className="rent-title"><small>PANEL</small><strong>ADMIN</strong></div>
-        <button className="icon-btn ghost" onClick={async () => { await signOut(); goto({ name: "home" }); }} title="Cerrar sesión">
+        <div className="rent-title">
+          <small>{appUser.role.toUpperCase()}</small>
+          <strong>{appUser.name}</strong>
+        </div>
+        <button className="icon-btn ghost" onClick={async () => {
+          await signOut();
+          setAppUser(null);
+          goto({ name: "home" });
+        }} title="Cerrar sesión">
           <Icon name="lock" size={18} color="#fff" />
         </button>
       </div>
-
 
       <div className="admin-stats">
         <div className="as-card"><small>TOTAL</small><strong>{stats.total}</strong></div>
@@ -770,21 +835,32 @@ function AdminScreen({ ctx }) {
         <div className="as-card"><small>FLOTA $/DÍA</small><strong>{fmtMoney(stats.revenue)}</strong></div>
       </div>
 
-      <div className="admin-section">
-        <div className="as-head">
-          <h3>CONFIGURACIÓN</h3>
+      {(can(appUser, 'canEditBusiness') || can(appUser, 'canManageUsers')) && (
+        <div className="admin-section">
+          <div className="as-head">
+            <h3>CONFIGURACIÓN</h3>
+          </div>
+          {can(appUser, 'canEditBusiness') && (
+            <button className="btn ghost-light block" onClick={() => setEditingBusiness(true)} style={{ marginBottom: 8 }}>
+              <Icon name="settings" size={16} /> EDITAR INFORMACIÓN DEL NEGOCIO
+            </button>
+          )}
+          {can(appUser, 'canManageUsers') && (
+            <button className="btn ghost-light block" onClick={() => setEditingUsers(true)}>
+              <Icon name="user" size={16} /> GESTIONAR USUARIOS
+            </button>
+          )}
         </div>
-        <button className="btn ghost-light block" onClick={() => setEditingBusiness(true)}>
-          <Icon name="settings" size={16} /> EDITAR INFORMACIÓN DEL NEGOCIO
-        </button>
-      </div>
+      )}
 
       <div className="admin-section">
         <div className="as-head">
           <h3>CATÁLOGO ({vehicles.length})</h3>
-          <button className="btn primary small" onClick={() => setEditing("new")}>
-            <Icon name="plus" size={14} color="#fff" /> NUEVO
-          </button>
+          {can(appUser, 'canCrudVehicles') && (
+            <button className="btn primary small" onClick={() => setEditing("new")}>
+              <Icon name="plus" size={14} color="#fff" /> NUEVO
+            </button>
+          )}
         </div>
         <div className="admin-list">
           {vehicles.map(v => (
@@ -799,21 +875,200 @@ function AdminScreen({ ctx }) {
                 </div>
               </div>
               <div className="ar-actions">
-                <button className="icon-btn alt" onClick={() => toggleAvailability(v.id)} title={v.available ? "Marcar rentado" : "Marcar disponible"}>
-                  <div className={`mini-switch ${v.available ? "on" : ""}`}><span /></div>
-                </button>
-                <button className="icon-btn alt" onClick={() => setEditing(v)}><Icon name="edit" size={16} /></button>
+                {can(appUser, 'canToggleAvail') && (
+                  <button className="icon-btn alt" onClick={() => toggleAvailability(v.id)} title={v.available ? "Marcar rentado" : "Marcar disponible"}>
+                    <div className={`mini-switch ${v.available ? "on" : ""}`}><span /></div>
+                  </button>
+                )}
+                {can(appUser, 'canCrudVehicles') && (
+                  <button className="icon-btn alt" onClick={() => setEditing(v)}><Icon name="edit" size={16} /></button>
+                )}
               </div>
             </div>
           ))}
           {vehicles.length === 0 && (
-            <div className="empty">Catálogo vacío. Click en NUEVO para añadir el primer vehículo.</div>
+            <div className="empty">
+              {can(appUser, 'canCrudVehicles')
+                ? "Catálogo vacío. Click en NUEVO para añadir el primer vehículo."
+                : "Catálogo vacío."}
+            </div>
           )}
         </div>
       </div>
 
       <div className="admin-foot">
-        <small style={{ color: "var(--gray)" }}>Sesión: {adminUser?.email}</small>
+        <small style={{ color: "var(--gray)" }}>
+          Sesión: <strong style={{ color: 'var(--silver)' }}>{appUser.name}</strong> ({ROLE_LABELS[appUser.role]})
+        </small>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// USERS EDITOR (solo owner)
+// ============================================================
+function UsersEditor({ currentUser, onClose }) {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null); // null | 'new' | userObject
+  const [error, setError] = useState("");
+
+  const refresh = async () => {
+    try {
+      setUsers(await fetchAppUsers());
+    } catch (e) {
+      setError(e.message || "Error cargando usuarios");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  const onDelete = async (u) => {
+    if (u.id === currentUser.id) return alert("No puedes eliminar tu propio usuario.");
+    const owners = users.filter(x => x.role === 'owner');
+    if (u.role === 'owner' && owners.length <= 1) {
+      return alert("No puedes eliminar al último owner. Asigna otro owner primero.");
+    }
+    if (!confirm(`¿Eliminar usuario "${u.name}"?`)) return;
+    try {
+      await deleteAppUser(u.id);
+      await refresh();
+    } catch (e) {
+      alert(e.message || "Error eliminando");
+    }
+  };
+
+  if (editing) {
+    return <UserForm
+      user={editing === 'new' ? null : editing}
+      currentUser={currentUser}
+      onClose={() => setEditing(null)}
+      onSaved={async () => { setEditing(null); await refresh(); }}
+    />;
+  }
+
+  return (
+    <div className="editor">
+      <div className="admin-top">
+        <button className="icon-btn solid" onClick={onClose}><Icon name="close" size={18} color="#fff" /></button>
+        <div className="rent-title"><small>GESTIONAR</small><strong>USUARIOS</strong></div>
+        <div style={{ width: 36 }} />
+      </div>
+
+      <div className="editor-body">
+        <div className="as-head" style={{ marginBottom: 12 }}>
+          <h3>USUARIOS ({users.length})</h3>
+          <button className="btn primary small" onClick={() => setEditing('new')}>
+            <Icon name="plus" size={14} color="#fff" /> NUEVO
+          </button>
+        </div>
+
+        {loading && <div className="empty">Cargando…</div>}
+        {error && <div className="al-error">{error}</div>}
+
+        <div className="admin-list">
+          {users.map(u => (
+            <div key={u.id} className="admin-row">
+              <div className="ar-img" style={{ background: 'var(--black-3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="user" size={20} color="#E11D2A" />
+              </div>
+              <div className="ar-info">
+                <strong>{u.name} {u.id === currentUser.id && <em style={{ color: 'var(--gray)', fontSize: 11 }}>(tú)</em>}</strong>
+                <small>{ROLE_LABELS[u.role]}</small>
+              </div>
+              <div className="ar-actions">
+                <button className="icon-btn alt" onClick={() => setEditing(u)} title="Editar">
+                  <Icon name="edit" size={16} />
+                </button>
+                <button className="icon-btn red" onClick={() => onDelete(u)} title="Eliminar"
+                  disabled={u.id === currentUser.id}>
+                  <Icon name="trash" size={14} color="#fff" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <small className="editor-hint" style={{ marginTop: 16 }}>
+          <strong>Roles:</strong><br/>
+          • <strong>Owner</strong>: acceso total + crear/editar/eliminar usuarios<br/>
+          • <strong>Manager</strong>: gestionar catálogo + info negocio (sin usuarios)<br/>
+          • <strong>Operator</strong>: solo marcar vehículos como disponible/rentado
+        </small>
+      </div>
+    </div>
+  );
+}
+
+function UserForm({ user, currentUser, onClose, onSaved }) {
+  const isNew = !user;
+  const isSelf = user && user.id === currentUser.id;
+  const [name, setName] = useState(user?.name || '');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState(user?.role || 'operator');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  // Si edito a mí mismo y soy el último owner, bloquear cambio de rol
+  const lockRole = isSelf && currentUser.role === 'owner';
+
+  const valid = name.trim() && (isNew ? password.length >= 4 : (!password || password.length >= 4));
+
+  const submit = async () => {
+    setSaving(true); setError('');
+    try {
+      if (isNew) {
+        await createAppUser({ name: name.trim(), password, role });
+      } else {
+        await updateAppUser(user.id, {
+          name: name.trim(),
+          role: lockRole ? user.role : role,
+          password: password || undefined,
+        });
+      }
+      await onSaved();
+    } catch (e) {
+      setError(e.message || 'Error guardando');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="editor">
+      <div className="admin-top">
+        <button className="icon-btn solid" onClick={onClose}><Icon name="close" size={18} color="#fff" /></button>
+        <div className="rent-title"><small>{isNew ? 'NUEVO' : 'EDITAR'}</small><strong>USUARIO</strong></div>
+        <div style={{ width: 36 }} />
+      </div>
+      <div className="editor-body">
+        <Field label="Nombre *">
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="Ej. Juan Pérez" autoFocus />
+        </Field>
+        <Field label={isNew ? "Contraseña * (mínimo 4 chars)" : "Nueva contraseña (dejar vacío para no cambiar)"}>
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+            placeholder={isNew ? "ej. clave123" : "(sin cambios)"} />
+        </Field>
+        <Field label="Rol *">
+          <select value={role} onChange={e => setRole(e.target.value)} disabled={lockRole}>
+            <option value="owner">Owner — acceso total</option>
+            <option value="manager">Manager — catálogo + info</option>
+            <option value="operator">Operator — solo marcar disp/rentado</option>
+          </select>
+          {lockRole && (
+            <small className="editor-hint">Eres el usuario actual. Para cambiar tu rol, otro owner debe hacerlo.</small>
+          )}
+        </Field>
+        {error && <div className="al-error" style={{ marginTop: 12 }}>{error}</div>}
+      </div>
+      <div className="sticky-bar">
+        <button className="btn ghost-light" onClick={onClose}>CANCELAR</button>
+        <button className="btn primary block" disabled={!valid || saving} onClick={submit}>
+          <Icon name="check" size={16} /> {saving ? "GUARDANDO…" : (isNew ? "CREAR" : "GUARDAR")}
+        </button>
       </div>
     </div>
   );

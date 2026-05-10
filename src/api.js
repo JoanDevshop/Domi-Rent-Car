@@ -176,6 +176,97 @@ export async function updateBusinessInfo(b) {
 }
 
 // ────────────────────────────────────────────────────────────
+// Password hashing — PBKDF2-SHA256, 100000 iter, 32 bytes output
+// Format en DB: "<salt_b64>$<hash_b64>"
+// ────────────────────────────────────────────────────────────
+const PBKDF2_ITER = 100000;
+
+const u8ToB64 = (u8) => btoa(String.fromCharCode(...u8));
+const b64ToU8 = (s) => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+export async function hashPassword(password, saltB64 = null) {
+  const enc = new TextEncoder();
+  const saltBytes = saltB64
+    ? b64ToU8(saltB64)
+    : crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey(
+    'raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: saltBytes, iterations: PBKDF2_ITER, hash: 'SHA-256' },
+    key, 256
+  );
+  return `${u8ToB64(saltBytes)}$${u8ToB64(new Uint8Array(bits))}`;
+}
+
+export async function verifyPassword(password, storedHash) {
+  if (!storedHash || !storedHash.includes('$')) return false;
+  const [saltB64] = storedHash.split('$');
+  const reHashed = await hashPassword(password, saltB64);
+  return reHashed === storedHash;
+}
+
+// ────────────────────────────────────────────────────────────
+// App users (admin del sistema, con roles)
+// ────────────────────────────────────────────────────────────
+const userFromRow = (r) => ({
+  id: r.id,
+  name: r.name,
+  role: r.role,
+  passwordHash: r.password_hash,
+  createdAt: r.created_at,
+});
+
+export async function fetchAppUsers() {
+  const { data, error } = await supabase
+    .from('app_users')
+    .select('*')
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data || []).map(userFromRow);
+}
+
+export async function fetchAppUsersForLogin() {
+  // Solo lo que necesitamos para verificar password (sin metadata pesada)
+  const { data, error } = await supabase
+    .from('app_users')
+    .select('id, name, role, password_hash');
+  if (error) throw error;
+  return (data || []).map(userFromRow);
+}
+
+export async function createAppUser({ name, password, role }) {
+  const password_hash = await hashPassword(password);
+  const { data, error } = await supabase
+    .from('app_users')
+    .insert({ name, password_hash, role })
+    .select()
+    .single();
+  if (error) throw error;
+  return userFromRow(data);
+}
+
+export async function updateAppUser(id, { name, password, role }) {
+  const patch = {};
+  if (name !== undefined) patch.name = name;
+  if (role !== undefined) patch.role = role;
+  if (password) patch.password_hash = await hashPassword(password);
+  const { data, error } = await supabase
+    .from('app_users')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return userFromRow(data);
+}
+
+export async function deleteAppUser(id) {
+  const { error } = await supabase.from('app_users').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ────────────────────────────────────────────────────────────
 // Auth
 // ────────────────────────────────────────────────────────────
 export async function signIn(email, password) {
