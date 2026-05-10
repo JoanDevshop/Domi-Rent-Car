@@ -160,6 +160,13 @@ export const DEFAULT_VEHICLES = [
   }
 ];
 
+export const DEFAULT_PERKS = [
+  { icon: "shield", title: "100% Asegurado", sub: "Cobertura total incluida en cada renta" },
+  { icon: "bolt",   title: "Entrega Rápida", sub: "Tu vehículo listo en menos de 2 horas" },
+  { icon: "award",  title: "Flota Premium",  sub: "Vehículos modelo 2023+ en perfecto estado" },
+  { icon: "phone",  title: "Soporte 24/7",   sub: "WhatsApp directo, respuesta inmediata" },
+];
+
 export const DEFAULT_BUSINESS_INFO = {
   name: "DOMI RENT CAR",
   tagline: "Maneja con estilo. Vive sin límites.",
@@ -171,5 +178,16 @@ export const DEFAULT_BUSINESS_INFO = {
   instagram: "@domirentcar",
   yearsInBusiness: 12,
   happyClients: 4800,
-  rating: 4.9
+  rating: 4.9,
+
+  // Landing content editable
+  heroEyebrow: "RENT A CAR · REPÚBLICA DOMINICANA",
+  heroSubtitle: "Flota premium para negocios y placer. Reserva directo por WhatsApp en minutos, entrega a domicilio disponible.",
+  heroImageUrl: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=2400&q=80",
+  ctaTitle: "¿LISTO PARA ARRANCAR?",
+  ctaSubtitle: "Reserva tu vehículo ahora por WhatsApp. Sin formularios, sin esperas — respuesta inmediata.",
+  aboutTitle: "Tu socio de confianza",
+  aboutSubtitle: "Somos la rent car preferida en República Dominicana, con la flota más exclusiva y el mejor servicio personalizado.",
+  aboutMission: "Ofrecer una experiencia de movilidad premium, segura y sin complicaciones. Vehículos modernos, precios justos y atención humana 24/7.",
+  perks: DEFAULT_PERKS,
 };

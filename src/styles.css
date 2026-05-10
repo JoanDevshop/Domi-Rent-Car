@@ -1328,16 +1328,20 @@ img, video, iframe { max-width: 100%; height: auto; }
   padding: 0 20px;
 }
 
-/* HERO — clases nuevas */
+/* HERO — clases nuevas. background-image viene inline del DB; aquí solo overlay */
 .hero-image {
   position: absolute;
   inset: 0;
-  background-image:
-    linear-gradient(180deg, rgba(10,10,11,0.4) 0%, rgba(10,10,11,0.85) 70%, rgba(10,10,11,1) 100%),
-    url("https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200&q=80");
   background-size: cover;
   background-position: center;
   opacity: .55;
+}
+.hero-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10,10,11,0.4) 0%, rgba(10,10,11,0.85) 70%, rgba(10,10,11,1) 100%);
+  pointer-events: none;
 }
 .hero-container {
   position: relative;
@@ -1515,6 +1519,101 @@ img, video, iframe { max-width: 100%; height: auto; }
 .footer-bottom small { font-size: 11px; letter-spacing: .12em; }
 
 /* ==========================================================
+   BUSINESS EDITOR — tabs + perk editor
+   ========================================================== */
+.editor-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 12px 20px;
+  overflow-x: auto;
+  background: var(--black-2);
+  border-bottom: 1px solid var(--gray-2);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  -webkit-overflow-scrolling: touch;
+}
+.editor-tabs::-webkit-scrollbar { display: none; }
+.editor-tab {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--gray);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-family: var(--header-fonts);
+  font-size: 12px;
+  letter-spacing: .12em;
+  cursor: pointer;
+  transition: all .15s;
+}
+.editor-tab:hover { color: var(--silver); }
+.editor-tab.active {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+}
+.editor-hint {
+  display: block;
+  color: var(--gray);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+.editor-hint code {
+  background: var(--black-3);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.icon-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.icon-picker select { flex: 1; }
+.icon-preview {
+  width: 38px; height: 38px;
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  background: rgba(225,29,42,.1);
+  border: 1px solid rgba(225,29,42,.3);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.perk-editor {
+  background: var(--black-2);
+  border: 1px solid var(--gray-2);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.perk-editor-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.perk-editor-head strong {
+  font-family: var(--header-fonts);
+  font-size: 13px;
+  letter-spacing: .14em;
+  color: var(--silver);
+}
+.perk-editor-actions {
+  display: flex;
+  gap: 4px;
+}
+.perk-editor-actions .icon-btn {
+  width: 30px; height: 30px;
+}
+.perk-editor-actions .icon-btn[disabled] { opacity: .35; cursor: not-allowed; }
+.icon-btn.red { background: var(--red); border-color: var(--red); }
+.icon-btn.red:hover { background: var(--red-deep); }
+
+/* ==========================================================
    DESKTOP ≥900px — rediseño layout web
    ========================================================== */
 @media (min-width: 900px) {
@@ -1635,11 +1734,12 @@ img, video, iframe { max-width: 100%; height: auto; }
   .hero-image {
     position: absolute;
     inset: 0;
-    background-image:
-      linear-gradient(90deg, rgba(10,10,11,0.95) 0%, rgba(10,10,11,0.65) 45%, rgba(10,10,11,0.2) 100%),
-      url("https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=2400&q=80");
     background-size: cover;
     background-position: center right;
+    opacity: 1;
+  }
+  .hero-image::after {
+    background: linear-gradient(90deg, rgba(10,10,11,0.95) 0%, rgba(10,10,11,0.65) 45%, rgba(10,10,11,0.2) 100%);
   }
   .hero-flag {
     right: -100px;

@@ -226,7 +226,7 @@ function HomeScreen({ ctx }) {
       {/* HERO */}
       <header className="hero">
         <div className="hero-bg" aria-hidden="true">
-          <div className="hero-image" />
+          <div className="hero-image" style={bi.heroImageUrl ? { backgroundImage: `url(${bi.heroImageUrl})` } : undefined} />
           <div className="hero-flag" />
           <div className="hero-vignette" />
         </div>
@@ -243,10 +243,10 @@ function HomeScreen({ ctx }) {
 
         <div className="hero-container">
           <div className="hero-text">
-            <span className="hero-eyebrow">RENT A CAR · REPÚBLICA DOMINICANA</span>
+            {bi.heroEyebrow && <span className="hero-eyebrow">{bi.heroEyebrow}</span>}
             <img src="/assets/logo.png" alt={bi.name} className="hero-logo" />
             <h1 className="hero-tagline">{bi.tagline}</h1>
-            <p className="hero-subtitle">Flota premium para negocios y placer. Reserva directo por WhatsApp en minutos, entrega a domicilio disponible.</p>
+            {bi.heroSubtitle && <p className="hero-subtitle">{bi.heroSubtitle}</p>}
             <div className="hero-stats">
               <div><strong>{fleetCount}</strong><span>VEHÍCULOS</span></div>
               <div className="divider" />
@@ -336,10 +336,9 @@ function HomeScreen({ ctx }) {
             <span className="section-sub">Lo que nos diferencia</span>
           </div>
           <div className="why-grid">
-            <Perk icon="shield" title="100% Asegurado" sub="Cobertura total incluida en cada renta" />
-            <Perk icon="bolt" title="Entrega Rápida" sub="Tu vehículo listo en menos de 2 horas" />
-            <Perk icon="award" title="Flota Premium" sub="Vehículos modelo 2023+ en perfecto estado" />
-            <Perk icon="phone" title="Soporte 24/7" sub="WhatsApp directo, respuesta inmediata" />
+            {(bi.perks || []).map((p, i) => (
+              <Perk key={i} icon={p.icon || 'shield'} title={p.title} sub={p.sub} />
+            ))}
           </div>
         </div>
       </section>
@@ -348,8 +347,8 @@ function HomeScreen({ ctx }) {
       <section className="cta-banner" id="contact-section">
         <div className="container">
           <div className="cta-content">
-            <h2>¿LISTO PARA ARRANCAR?</h2>
-            <p>Reserva tu vehículo ahora por WhatsApp. Sin formularios, sin esperas — respuesta inmediata.</p>
+            <h2>{bi.ctaTitle || '¿LISTO PARA ARRANCAR?'}</h2>
+            <p>{bi.ctaSubtitle || 'Reserva tu vehículo ahora por WhatsApp.'}</p>
             <div className="cta-actions">
               <a className="btn wa-primary big" href={waLink(bi.whatsapp, `Hola ${bi.name}, quiero información sobre los vehículos disponibles.`)} target="_blank" rel="noreferrer">
                 <Icon name="whatsapp" size={20} color="#fff" />
@@ -648,8 +647,8 @@ function AboutScreen({ ctx }) {
       </div>
       <div className="about-hero">
         <img src="/assets/logo.png" alt="" />
-        <h2>Tu socio de confianza</h2>
-        <p>Somos la rent car preferida en República Dominicana, con la flota más exclusiva y el mejor servicio personalizado.</p>
+        <h2>{bi.aboutTitle || 'Tu socio de confianza'}</h2>
+        <p>{bi.aboutSubtitle || ''}</p>
       </div>
       <div className="about-stats">
         <div><strong>{vehicles.length}</strong><span>VEHÍCULOS</span></div>
@@ -658,7 +657,7 @@ function AboutScreen({ ctx }) {
       </div>
       <div className="about-block">
         <h3>NUESTRA MISIÓN</h3>
-        <p>Ofrecer una experiencia de movilidad premium, segura y sin complicaciones. Vehículos modernos, precios justos y atención humana 24/7.</p>
+        <p>{bi.aboutMission || ''}</p>
       </div>
       <div className="about-block">
         <h3>CONTACTO</h3>
@@ -820,8 +819,26 @@ function AdminScreen({ ctx }) {
   );
 }
 
+const PERK_ICONS = ['shield', 'bolt', 'award', 'phone', 'star', 'check', 'gps', 'snow', 'bluetooth', 'clock', 'mail', 'user', 'car', 'fuel', 'seat', 'cog'];
+
+const EDITOR_TABS = [
+  { id: 'identity',  label: 'IDENTIDAD' },
+  { id: 'contact',   label: 'CONTACTO' },
+  { id: 'stats',     label: 'STATS' },
+  { id: 'hero',      label: 'HERO' },
+  { id: 'perks',     label: 'PERKS' },
+  { id: 'cta',       label: 'CTA' },
+  { id: 'about',     label: 'NOSOTROS' },
+];
+
 function BusinessEditor({ info, onClose, onSave }) {
-  const [f, setF] = useState({ ...info });
+  const [f, setF] = useState({
+    ...info,
+    perks: Array.isArray(info?.perks) && info.perks.length ? info.perks : [
+      { icon: 'shield', title: '', sub: '' },
+    ],
+  });
+  const [tab, setTab] = useState('identity');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const u = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -835,70 +852,214 @@ function BusinessEditor({ info, onClose, onSave }) {
     finally { setSaving(false); }
   };
 
+  // Perk helpers
+  const updatePerk = (i, key, value) => setF(p => ({
+    ...p,
+    perks: p.perks.map((pk, ix) => ix === i ? { ...pk, [key]: value } : pk),
+  }));
+  const addPerk = () => setF(p => ({
+    ...p,
+    perks: [...p.perks, { icon: 'shield', title: '', sub: '' }],
+  }));
+  const removePerk = (i) => setF(p => ({
+    ...p,
+    perks: p.perks.filter((_, ix) => ix !== i),
+  }));
+  const movePerk = (i, dir) => setF(p => {
+    const arr = [...p.perks];
+    const j = i + dir;
+    if (j < 0 || j >= arr.length) return p;
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    return { ...p, perks: arr };
+  });
+
   return (
     <div className="editor">
       <div className="admin-top">
         <button className="icon-btn solid" onClick={onClose}><Icon name="close" size={18} color="#fff" /></button>
-        <div className="rent-title"><small>EDITAR</small><strong>INFO NEGOCIO</strong></div>
+        <div className="rent-title"><small>EDITAR</small><strong>CONFIGURACIÓN</strong></div>
         <div style={{ width: 36 }} />
       </div>
 
+      <div className="editor-tabs">
+        {EDITOR_TABS.map(t => (
+          <button key={t.id} className={`editor-tab ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <div className="editor-body">
-        <h4>Identidad</h4>
-        <Field label="Nombre del negocio *">
-          <input value={f.name} onChange={e => u("name", e.target.value)} placeholder="Ej. Domi Rent Car" />
-        </Field>
-        <Field label="Tagline / Lema">
-          <input value={f.tagline} onChange={e => u("tagline", e.target.value)} placeholder="Frase corta de marca" />
-        </Field>
+        {tab === 'identity' && (
+          <>
+            <h4>Identidad de marca</h4>
+            <Field label="Nombre del negocio *">
+              <input value={f.name} onChange={e => u("name", e.target.value)} placeholder="Ej. Domi Rent Car" />
+            </Field>
+            <Field label="Tagline / Lema">
+              <input value={f.tagline} onChange={e => u("tagline", e.target.value)} placeholder="Frase corta de marca" />
+            </Field>
+            <small className="editor-hint">El logo se cambia reemplazando <code>public/assets/logo.png</code> en el repo.</small>
+          </>
+        )}
 
-        <h4>Contacto</h4>
-        <Field label="Teléfono *">
-          <input value={f.phone} onChange={e => u("phone", e.target.value)} placeholder="+1 (809) 000-0000" />
-        </Field>
-        <Field label="WhatsApp (solo dígitos, con código de país) *">
-          <input
-            value={f.whatsapp}
-            onChange={e => u("whatsapp", e.target.value.replace(/[^\d]/g, ""))}
-            placeholder="18095550199"
-          />
-          <small style={{ color: "var(--gray)", marginTop: 4, display: "block" }}>
-            Sin "+" ni espacios. Ej: 18095550199
-          </small>
-        </Field>
-        <Field label="Email">
-          <input type="email" value={f.email} onChange={e => u("email", e.target.value)} placeholder="info@negocio.com" />
-        </Field>
-        <Field label="Instagram">
-          <input value={f.instagram} onChange={e => u("instagram", e.target.value)} placeholder="@negocio" />
-        </Field>
+        {tab === 'contact' && (
+          <>
+            <h4>Datos de contacto</h4>
+            <Field label="Teléfono *">
+              <input value={f.phone} onChange={e => u("phone", e.target.value)} placeholder="+1 (809) 000-0000" />
+            </Field>
+            <Field label="WhatsApp (solo dígitos, con código país) *">
+              <input
+                value={f.whatsapp}
+                onChange={e => u("whatsapp", e.target.value.replace(/[^\d]/g, ""))}
+                placeholder="18095550199"
+              />
+              <small className="editor-hint">Sin &quot;+&quot; ni espacios. Ej: 18095550199</small>
+            </Field>
+            <Field label="Email">
+              <input type="email" value={f.email} onChange={e => u("email", e.target.value)} placeholder="info@negocio.com" />
+            </Field>
+            <Field label="Instagram">
+              <input value={f.instagram} onChange={e => u("instagram", e.target.value)} placeholder="@negocio" />
+            </Field>
 
-        <h4>Ubicación</h4>
-        <Field label="Dirección">
-          <input value={f.address} onChange={e => u("address", e.target.value)} placeholder="Av. ..., ciudad" />
-        </Field>
-        <Field label="Horario">
-          <input value={f.hours} onChange={e => u("hours", e.target.value)} placeholder="Lun–Sab 8AM–8PM · Dom 9AM–5PM" />
-        </Field>
+            <h4>Ubicación</h4>
+            <Field label="Dirección">
+              <input value={f.address} onChange={e => u("address", e.target.value)} placeholder="Av. ..., ciudad" />
+            </Field>
+            <Field label="Horario">
+              <input value={f.hours} onChange={e => u("hours", e.target.value)} placeholder="Lun–Sab 8AM–8PM · Dom 9AM–5PM" />
+            </Field>
+          </>
+        )}
 
-        <h4>Estadísticas (mostradas en home/about)</h4>
-        <div className="grid-2">
-          <Field label="Años en el negocio">
-            <input type="number" min="0" value={f.yearsInBusiness}
-              onChange={e => u("yearsInBusiness", +e.target.value)} />
-          </Field>
-          <Field label="Rating (★)">
-            <input type="number" step="0.1" min="0" max="5" value={f.rating}
-              onChange={e => u("rating", +e.target.value)} />
-          </Field>
-        </div>
-        <Field label="Clientes felices">
-          <input type="number" min="0" value={f.happyClients}
-            onChange={e => u("happyClients", +e.target.value)} />
-        </Field>
-        <small style={{ color: "var(--gray)", display: "block", marginTop: -8 }}>
-          El número de "vehículos" en home se calcula automáticamente del catálogo.
-        </small>
+        {tab === 'stats' && (
+          <>
+            <h4>Estadísticas mostradas en home / about</h4>
+            <div className="grid-2">
+              <Field label="Años en el negocio">
+                <input type="number" min="0" value={f.yearsInBusiness}
+                  onChange={e => u("yearsInBusiness", +e.target.value)} />
+              </Field>
+              <Field label="Rating (★)">
+                <input type="number" step="0.1" min="0" max="5" value={f.rating}
+                  onChange={e => u("rating", +e.target.value)} />
+              </Field>
+            </div>
+            <Field label="Clientes felices (mostrado en about)">
+              <input type="number" min="0" value={f.happyClients}
+                onChange={e => u("happyClients", +e.target.value)} />
+            </Field>
+            <small className="editor-hint">
+              El # de vehículos en home se calcula automáticamente del catálogo.
+            </small>
+          </>
+        )}
+
+        {tab === 'hero' && (
+          <>
+            <h4>Sección Hero (la primera pantalla de la landing)</h4>
+            <Field label="Eyebrow / etiqueta superior">
+              <input value={f.heroEyebrow ?? ''} onChange={e => u("heroEyebrow", e.target.value)}
+                placeholder="Ej. RENT A CAR · REPÚBLICA DOMINICANA" />
+              <small className="editor-hint">Texto pequeño rojo arriba del título. Déjalo vacío para ocultar.</small>
+            </Field>
+            <Field label="Subtitle / descripción del hero">
+              <textarea rows={3} value={f.heroSubtitle ?? ''}
+                onChange={e => u("heroSubtitle", e.target.value)}
+                placeholder="Frase corta debajo del tagline..." />
+            </Field>
+            <Field label="URL imagen de fondo del hero">
+              <input value={f.heroImageUrl ?? ''} onChange={e => u("heroImageUrl", e.target.value)}
+                placeholder="https://..." />
+              <small className="editor-hint">URL pública de la imagen. Idealmente 2400px ancho. Vacío = sin imagen.</small>
+            </Field>
+            {f.heroImageUrl && (
+              <div className="img-row">
+                <div className="ir-preview" style={{ backgroundImage: `url(${f.heroImageUrl})` }} />
+                <small style={{ color: "var(--gray)" }}>Preview</small>
+              </div>
+            )}
+          </>
+        )}
+
+        {tab === 'perks' && (
+          <>
+            <h4>Beneficios / "¿Por qué nosotros?" ({f.perks.length})</h4>
+            <small className="editor-hint" style={{ marginBottom: 12, display: 'block' }}>
+              Cada perk = un bullet point en la sección "¿Por qué?". 4 perks se ven óptimo en desktop.
+            </small>
+            {f.perks.map((p, i) => (
+              <div key={i} className="perk-editor">
+                <div className="perk-editor-head">
+                  <strong>Perk #{i + 1}</strong>
+                  <div className="perk-editor-actions">
+                    <button className="icon-btn alt" onClick={() => movePerk(i, -1)} disabled={i === 0} title="Subir">↑</button>
+                    <button className="icon-btn alt" onClick={() => movePerk(i, 1)} disabled={i === f.perks.length - 1} title="Bajar">↓</button>
+                    <button className="icon-btn red" onClick={() => removePerk(i)} title="Eliminar">
+                      <Icon name="trash" size={14} color="#fff" />
+                    </button>
+                  </div>
+                </div>
+                <Field label="Icono">
+                  <div className="icon-picker">
+                    <select value={p.icon} onChange={e => updatePerk(i, 'icon', e.target.value)}>
+                      {PERK_ICONS.map(ic => <option key={ic} value={ic}>{ic}</option>)}
+                    </select>
+                    <span className="icon-preview"><Icon name={p.icon} size={20} color="#E11D2A" /></span>
+                  </div>
+                </Field>
+                <Field label="Título">
+                  <input value={p.title} onChange={e => updatePerk(i, 'title', e.target.value)}
+                    placeholder="Ej. 100% Asegurado" />
+                </Field>
+                <Field label="Subtítulo">
+                  <input value={p.sub} onChange={e => updatePerk(i, 'sub', e.target.value)}
+                    placeholder="Ej. Cobertura total incluida" />
+                </Field>
+              </div>
+            ))}
+            <button className="btn ghost-dark small block" onClick={addPerk}>
+              <Icon name="plus" size={12} /> AGREGAR PERK
+            </button>
+          </>
+        )}
+
+        {tab === 'cta' && (
+          <>
+            <h4>Banner CTA (sección roja antes del footer)</h4>
+            <Field label="Título principal">
+              <input value={f.ctaTitle ?? ''} onChange={e => u("ctaTitle", e.target.value)}
+                placeholder="¿LISTO PARA ARRANCAR?" />
+            </Field>
+            <Field label="Subtítulo">
+              <textarea rows={3} value={f.ctaSubtitle ?? ''}
+                onChange={e => u("ctaSubtitle", e.target.value)}
+                placeholder="Reserva tu vehículo ahora por WhatsApp..." />
+            </Field>
+          </>
+        )}
+
+        {tab === 'about' && (
+          <>
+            <h4>Página &quot;Sobre Nosotros&quot;</h4>
+            <Field label="Título">
+              <input value={f.aboutTitle ?? ''} onChange={e => u("aboutTitle", e.target.value)}
+                placeholder="Ej. Tu socio de confianza" />
+            </Field>
+            <Field label="Subtítulo / descripción corta">
+              <textarea rows={3} value={f.aboutSubtitle ?? ''}
+                onChange={e => u("aboutSubtitle", e.target.value)}
+                placeholder="Somos la rent car preferida..." />
+            </Field>
+            <Field label="Misión / texto largo">
+              <textarea rows={5} value={f.aboutMission ?? ''}
+                onChange={e => u("aboutMission", e.target.value)}
+                placeholder="Ofrecer una experiencia de movilidad..." />
+            </Field>
+          </>
+        )}
 
         {error && <div className="al-error" style={{ marginTop: 12 }}>{error}</div>}
       </div>

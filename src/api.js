@@ -55,6 +55,13 @@ const vehicleToRow = (v) => ({
   sort_order: v.sortOrder ?? 0,
 });
 
+const DEFAULT_PERKS_FALLBACK = [
+  { icon: "shield", title: "100% Asegurado", sub: "Cobertura total incluida en cada renta" },
+  { icon: "bolt",   title: "Entrega Rápida", sub: "Tu vehículo listo en menos de 2 horas" },
+  { icon: "award",  title: "Flota Premium",  sub: "Vehículos modelo 2023+ en perfecto estado" },
+  { icon: "phone",  title: "Soporte 24/7",   sub: "WhatsApp directo, respuesta inmediata" },
+];
+
 const businessFromRow = (r) => ({
   name: r.name,
   tagline: r.tagline ?? '',
@@ -67,6 +74,16 @@ const businessFromRow = (r) => ({
   yearsInBusiness: r.years_in_business ?? 0,
   happyClients: r.happy_clients ?? 0,
   rating: Number(r.rating ?? 5),
+
+  heroEyebrow: r.hero_eyebrow ?? '',
+  heroSubtitle: r.hero_subtitle ?? '',
+  heroImageUrl: r.hero_image_url ?? '',
+  ctaTitle: r.cta_title ?? '',
+  ctaSubtitle: r.cta_subtitle ?? '',
+  aboutTitle: r.about_title ?? '',
+  aboutSubtitle: r.about_subtitle ?? '',
+  aboutMission: r.about_mission ?? '',
+  perks: Array.isArray(r.perks) && r.perks.length ? r.perks : DEFAULT_PERKS_FALLBACK,
 });
 
 const businessToRow = (b) => ({
@@ -81,6 +98,16 @@ const businessToRow = (b) => ({
   years_in_business: b.yearsInBusiness,
   happy_clients: b.happyClients,
   rating: b.rating,
+
+  hero_eyebrow: b.heroEyebrow,
+  hero_subtitle: b.heroSubtitle,
+  hero_image_url: b.heroImageUrl,
+  cta_title: b.ctaTitle,
+  cta_subtitle: b.ctaSubtitle,
+  about_title: b.aboutTitle,
+  about_subtitle: b.aboutSubtitle,
+  about_mission: b.aboutMission,
+  perks: b.perks ?? [],
 });
 
 // ────────────────────────────────────────────────────────────
