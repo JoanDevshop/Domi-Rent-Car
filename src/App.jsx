@@ -638,16 +638,6 @@ function VehicleScreen({ ctx, vehicleId }) {
         <p className="vd-desc">{v.description}</p>
       </div>
 
-      <div className="vd-section">
-        <h3 className="vd-h">TARIFAS</h3>
-        <div className="pricing">
-          <div className="pricing-row"><span>1 día</span><strong>{fmtMoney(v.pricePerDay)}</strong></div>
-          <div className="pricing-row"><span>3 días</span><strong>{fmtMoney(v.pricePerDay * 3)}</strong></div>
-          <div className="pricing-row featured"><span>7 días <em>−10%</em></span><strong>{fmtMoney(Math.round(v.pricePerDay * 7 * 0.9))}</strong></div>
-          <div className="pricing-row featured"><span>30 días <em>−20%</em></span><strong>{fmtMoney(Math.round(v.pricePerDay * 30 * 0.8))}</strong></div>
-        </div>
-      </div>
-
       <div style={{ height: 110 }} />
 
       <div className="sticky-bar">
