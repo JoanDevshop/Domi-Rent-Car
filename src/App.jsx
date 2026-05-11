@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { DEFAULT_BUSINESS_INFO } from './data';
+import { applySeo } from './seo';
 import {
   fetchVehicles, upsertVehicle, deleteVehicle, setVehicleAvailability,
   fetchBusinessInfo, updateBusinessInfo,
@@ -136,6 +137,11 @@ function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // SEO: actualizar title + meta tags al cambiar de vista
+  useEffect(() => {
+    applySeo({ view, vehicles, businessInfo });
+  }, [view, vehicles, businessInfo]);
 
   const goto = (v) => {
     setView(v);

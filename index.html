@@ -1,12 +1,69 @@
 <!doctype html>
-<html lang="es">
+<html lang="es-DO">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/assets/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0A0A0B" />
-    <meta name="description" content="Domi Rent Car — Catálogo de vehículos de alquiler en República Dominicana." />
-    <title>Domi Rent Car · Catálogo</title>
+
+    <!-- Título dinámico — JS lo cambia al navegar -->
+    <title>Inicio · DOMI RENT CAR — Renta de Vehículos en República Dominicana</title>
+
+    <!-- SEO básico -->
+    <meta name="description" content="Renta de vehículos premium en República Dominicana. Flota actualizada de SUVs, deportivos y sedanes. Reserva directo por WhatsApp, entrega rápida en menos de 2 horas. Santo Domingo, Punta Cana, AILA." />
+    <meta name="keywords" content="renta de carros, alquiler de vehículos, rent a car, República Dominicana, Santo Domingo, Punta Cana, AILA, SUV, sedán, deportivo, alquiler auto RD, renta carro santo domingo, rent car dominicana" />
+    <meta name="author" content="DOMI RENT CAR" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="geo.region" content="DO" />
+    <meta name="geo.placename" content="Santo Domingo, República Dominicana" />
+    <meta name="language" content="Spanish" />
+
+    <link rel="canonical" href="https://domirentcar.com/" />
+    <link rel="icon" type="image/png" href="/assets/logo.png" />
+    <link rel="apple-touch-icon" href="/assets/logo.png" />
+
+    <!-- Open Graph (Facebook, WhatsApp, LinkedIn) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="DOMI RENT CAR" />
+    <meta property="og:title" content="DOMI RENT CAR — Renta de Vehículos Premium en RD" />
+    <meta property="og:description" content="Flota premium para business y placer. Reserva por WhatsApp en minutos, entrega rápida. SUVs, deportivos, sedanes." />
+    <meta property="og:image" content="/assets/logo.png" />
+    <meta property="og:image:alt" content="DOMI RENT CAR — Logo" />
+    <meta property="og:url" content="https://domirentcar.com/" />
+    <meta property="og:locale" content="es_DO" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DOMI RENT CAR — Renta de Vehículos en RD" />
+    <meta name="twitter:description" content="Flota premium. Reserva por WhatsApp en minutos. Santo Domingo, Punta Cana." />
+    <meta name="twitter:image" content="/assets/logo.png" />
+
+    <!-- Schema.org JSON-LD — AutoRental business -->
+    <script type="application/ld+json" id="ld-business">
+    {
+      "@context": "https://schema.org",
+      "@type": "AutoRental",
+      "name": "DOMI RENT CAR",
+      "description": "Renta de vehículos premium en República Dominicana. Flota actualizada con SUVs, deportivos y sedanes.",
+      "url": "https://domirentcar.com/",
+      "telephone": "+1-809-555-0199",
+      "image": "/assets/logo.png",
+      "priceRange": "$$",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Av. Independencia #1234",
+        "addressLocality": "Santo Domingo",
+        "addressCountry": "DO"
+      },
+      "areaServed": [
+        { "@type": "Country", "name": "República Dominicana" },
+        { "@type": "City", "name": "Santo Domingo" },
+        { "@type": "City", "name": "Punta Cana" }
+      ],
+      "openingHours": "Mo-Sa 08:00-20:00 Su 09:00-17:00",
+      "sameAs": []
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
