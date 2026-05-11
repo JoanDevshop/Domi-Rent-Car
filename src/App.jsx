@@ -4,7 +4,7 @@ import {
   fetchVehicles, upsertVehicle, deleteVehicle, setVehicleAvailability,
   fetchBusinessInfo, updateBusinessInfo,
   signInAnonymous, signOut, onAuthChange, getCurrentUser,
-  uploadVehicleImage, deleteVehicleImageByUrl,
+  uploadVehicleImage, uploadImage, deleteImageByUrl, deleteVehicleImageByUrl,
   fetchAppUsersForLogin, fetchAppUsers, createAppUser, updateAppUser, deleteAppUser,
   verifyPassword,
 } from './api';
@@ -549,30 +549,49 @@ function VehicleScreen({ ctx, vehicleId }) {
   const { vehicles, goto, businessInfo: bi } = ctx;
   const v = vehicles.find(x => x.id === vehicleId);
   const [imgIdx, setImgIdx] = useState(0);
+  const [lightbox, setLightbox] = useState(false);
 
   if (!v) return <div className="screen-pad">Vehículo no encontrado.</div>;
+
+  const images = v.images || [];
+  const N = images.length;
+  const next = () => setImgIdx(i => (i + 1) % Math.max(N, 1));
+  const prev = () => setImgIdx(i => (i - 1 + N) % Math.max(N, 1));
 
   const waMsg = `Hola ${bi.name}, me interesa el ${v.name} (${fmtMoney(v.pricePerDay)}/día). ¿Está disponible?`;
 
   return (
     <div className="vdetail">
       <div className="vd-gallery">
-        <div className="vd-img-wrap" style={{ backgroundImage: `url(${v.images[imgIdx]})` }}>
-          <div className="vd-top">
-            <button className="icon-btn solid" onClick={() => goto({ name: "home" })}><Icon name="back" size={18} color="#fff" /></button>
-            <span className="vd-cat-badge">{v.category}</span>
-          </div>
-          {!v.available && <div className="vd-unavail-banner">ACTUALMENTE EN RENTA</div>}
-        </div>
-        {v.images.length > 1 && (
+        <VehicleGallery
+          images={images}
+          imgIdx={imgIdx}
+          setImgIdx={setImgIdx}
+          onZoom={() => setLightbox(true)}
+          category={v.category}
+          available={v.available}
+          onBack={() => goto({ name: "home" })}
+        />
+        {N > 1 && (
           <div className="vd-thumbs">
-            {v.images.map((src, i) => (
+            {images.map((src, i) => (
               <button key={i} className={`vd-thumb ${i === imgIdx ? "active" : ""}`} onClick={() => setImgIdx(i)}
-                style={{ backgroundImage: `url(${src})` }} />
+                style={{ backgroundImage: `url(${src})` }} aria-label={`Foto ${i + 1}`} />
             ))}
           </div>
         )}
       </div>
+
+      {lightbox && (
+        <Lightbox
+          images={images}
+          startIdx={imgIdx}
+          onClose={() => setLightbox(false)}
+          onIndexChange={setImgIdx}
+          caption={v.name}
+        />
+      )}
+
 
       <div className="vd-head">
         <div>
@@ -1213,30 +1232,7 @@ function BusinessEditor({ info, onClose, onSave }) {
         )}
 
         {tab === 'hero' && (
-          <>
-            <h4>Sección Hero (la primera pantalla de la landing)</h4>
-            <Field label="Eyebrow / etiqueta superior">
-              <input value={f.heroEyebrow ?? ''} onChange={e => u("heroEyebrow", e.target.value)}
-                placeholder="Ej. RENT A CAR · REPÚBLICA DOMINICANA" />
-              <small className="editor-hint">Texto pequeño rojo arriba del título. Déjalo vacío para ocultar.</small>
-            </Field>
-            <Field label="Subtitle / descripción del hero">
-              <textarea rows={3} value={f.heroSubtitle ?? ''}
-                onChange={e => u("heroSubtitle", e.target.value)}
-                placeholder="Frase corta debajo del tagline..." />
-            </Field>
-            <Field label="URL imagen de fondo del hero">
-              <input value={f.heroImageUrl ?? ''} onChange={e => u("heroImageUrl", e.target.value)}
-                placeholder="https://..." />
-              <small className="editor-hint">URL pública de la imagen. Idealmente 2400px ancho. Vacío = sin imagen.</small>
-            </Field>
-            {f.heroImageUrl && (
-              <div className="img-row">
-                <div className="ir-preview" style={{ backgroundImage: `url(${f.heroImageUrl})` }} />
-                <small style={{ color: "var(--gray)" }}>Preview</small>
-              </div>
-            )}
-          </>
+          <HeroTab f={f} u={u} />
         )}
 
         {tab === 'perks' && (
@@ -1500,6 +1496,218 @@ function VehicleEditor({ vehicle, onClose, onSave, onDelete }) {
         </button>
       </div>
     </div>
+  );
+}
+
+// ============================================================
+// VEHICLE GALLERY — imagen principal con flechas + indicador + swipe
+// ============================================================
+function VehicleGallery({ images, imgIdx, setImgIdx, onZoom, category, available, onBack }) {
+  const N = images.length;
+  const touchStart = useRef(null);
+  const touchEnd = useRef(null);
+
+  const next = () => setImgIdx((imgIdx + 1) % Math.max(N, 1));
+  const prev = () => setImgIdx((imgIdx - 1 + N) % Math.max(N, 1));
+
+  const onTouchStart = (e) => { touchStart.current = e.targetTouches[0].clientX; touchEnd.current = null; };
+  const onTouchMove = (e) => { touchEnd.current = e.targetTouches[0].clientX; };
+  const onTouchEnd = () => {
+    if (touchStart.current === null || touchEnd.current === null) return;
+    const dist = touchStart.current - touchEnd.current;
+    if (Math.abs(dist) < 50) return;
+    if (dist > 0) next(); else prev();
+  };
+
+  const current = images[imgIdx];
+
+  return (
+    <div
+      className={`vd-img-wrap ${current ? '' : 'empty'}`}
+      style={current ? { backgroundImage: `url(${current})` } : undefined}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      <div className="vd-top">
+        <button className="icon-btn solid" onClick={onBack}><Icon name="back" size={18} color="#fff" /></button>
+        {category && <span className="vd-cat-badge">{category}</span>}
+      </div>
+
+      {!available && <div className="vd-unavail-banner">ACTUALMENTE EN RENTA</div>}
+
+      {!current && (
+        <div className="vd-no-image"><Icon name="image" size={48} color="#444" /> Sin fotos</div>
+      )}
+
+      {N > 1 && (
+        <>
+          <button className="vd-arrow vd-arrow-left" onClick={prev} aria-label="Anterior">
+            <Icon name="back" size={22} color="#fff" />
+          </button>
+          <button className="vd-arrow vd-arrow-right" onClick={next} aria-label="Siguiente">
+            <Icon name="chevronRight" size={22} color="#fff" />
+          </button>
+          <div className="vd-counter">{imgIdx + 1} / {N}</div>
+        </>
+      )}
+
+      {current && (
+        <button className="vd-zoom" onClick={onZoom} aria-label="Ampliar foto">
+          <Icon name="image" size={18} color="#fff" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// LIGHTBOX — full-screen image viewer con flechas + ESC + swipe
+// ============================================================
+function Lightbox({ images, startIdx, onClose, onIndexChange, caption }) {
+  const [idx, setIdx] = useState(startIdx);
+  const N = images.length;
+  const touchStart = useRef(null);
+  const touchEnd = useRef(null);
+
+  useEffect(() => {
+    onIndexChange?.(idx);
+  }, [idx]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight') setIdx(i => (i + 1) % N);
+      if (e.key === 'ArrowLeft') setIdx(i => (i - 1 + N) % N);
+    };
+    window.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [N, onClose]);
+
+  const next = () => setIdx(i => (i + 1) % N);
+  const prev = () => setIdx(i => (i - 1 + N) % N);
+
+  const onTouchStart = (e) => { touchStart.current = e.targetTouches[0].clientX; touchEnd.current = null; };
+  const onTouchMove = (e) => { touchEnd.current = e.targetTouches[0].clientX; };
+  const onTouchEnd = () => {
+    if (touchStart.current === null || touchEnd.current === null) return;
+    const dist = touchStart.current - touchEnd.current;
+    if (Math.abs(dist) < 50) return;
+    if (dist > 0) next(); else prev();
+  };
+
+  return (
+    <div className="lightbox" onClick={onClose}>
+      <button className="lb-close" onClick={onClose} aria-label="Cerrar">
+        <Icon name="close" size={26} color="#fff" />
+      </button>
+
+      <div className="lb-stage" onClick={e => e.stopPropagation()}
+        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+        <img className="lb-img" src={images[idx]} alt={caption || ''} />
+
+        {N > 1 && (
+          <>
+            <button className="lb-arrow lb-arrow-left" onClick={prev} aria-label="Anterior">
+              <Icon name="back" size={28} color="#fff" />
+            </button>
+            <button className="lb-arrow lb-arrow-right" onClick={next} aria-label="Siguiente">
+              <Icon name="chevronRight" size={28} color="#fff" />
+            </button>
+          </>
+        )}
+
+        <div className="lb-footer">
+          {caption && <span className="lb-caption">{caption}</span>}
+          {N > 1 && <span className="lb-counter">{idx + 1} / {N}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// HERO TAB — file upload para imagen del hero
+// ============================================================
+function HeroTab({ f, u }) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const fileRef = useRef(null);
+
+  const onPickFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploading(true); setError('');
+    try {
+      const url = await uploadImage(file, 'hero');
+      // Borrar la anterior si era del bucket
+      if (f.heroImageUrl && f.heroImageUrl.includes('/storage/v1/object/public/')) {
+        deleteImageByUrl(f.heroImageUrl).catch(() => {});
+      }
+      u('heroImageUrl', url);
+    } catch (err) {
+      setError(err.message || 'Error subiendo imagen');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const onRemove = () => {
+    if (f.heroImageUrl && f.heroImageUrl.includes('/storage/v1/object/public/')) {
+      deleteImageByUrl(f.heroImageUrl).catch(() => {});
+    }
+    u('heroImageUrl', '');
+  };
+
+  return (
+    <>
+      <h4>Sección Hero (primera pantalla)</h4>
+      <Field label="Eyebrow / etiqueta superior">
+        <input value={f.heroEyebrow ?? ''} onChange={e => u("heroEyebrow", e.target.value)}
+          placeholder="Ej. RENT A CAR · REPÚBLICA DOMINICANA" />
+        <small className="editor-hint">Texto pequeño rojo arriba del título. Déjalo vacío para ocultar.</small>
+      </Field>
+      <Field label="Subtitle / descripción del hero">
+        <textarea rows={3} value={f.heroSubtitle ?? ''}
+          onChange={e => u("heroSubtitle", e.target.value)}
+          placeholder="Frase corta debajo del tagline..." />
+      </Field>
+
+      <h4>Imagen de fondo del hero</h4>
+      <small className="editor-hint" style={{ display: 'block', marginBottom: 10 }}>
+        Recomendado: foto horizontal, mínimo 1600px de ancho. Se usa como background del hero.
+      </small>
+
+      {f.heroImageUrl && (
+        <div className="hero-preview" style={{ backgroundImage: `url(${f.heroImageUrl})` }}>
+          <button className="icon-btn red hero-preview-remove" onClick={onRemove} title="Quitar imagen">
+            <Icon name="trash" size={14} color="#fff" />
+          </button>
+        </div>
+      )}
+
+      <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onPickFile} />
+      <button className="btn ghost-dark block" onClick={() => fileRef.current?.click()} disabled={uploading}>
+        <Icon name="upload" size={14} /> {uploading ? "SUBIENDO…" : (f.heroImageUrl ? "REEMPLAZAR FOTO" : "SUBIR FOTO")}
+      </button>
+
+      <details style={{ marginTop: 16 }}>
+        <summary style={{ cursor: 'pointer', color: 'var(--gray)', fontSize: 12 }}>
+          ¿Prefieres usar una URL externa?
+        </summary>
+        <Field label="URL imagen de fondo del hero">
+          <input value={f.heroImageUrl ?? ''} onChange={e => u("heroImageUrl", e.target.value)}
+            placeholder="https://..." />
+        </Field>
+      </details>
+
+      {error && <div className="al-error" style={{ marginTop: 10 }}>{error}</div>}
+    </>
   );
 }
 

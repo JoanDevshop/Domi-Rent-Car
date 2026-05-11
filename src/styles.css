@@ -1628,6 +1628,205 @@ img, video, iframe { max-width: 100%; height: auto; }
 .icon-btn.red:hover { background: var(--red-deep); }
 
 /* ==========================================================
+   VEHICLE GALLERY — arrows + counter + zoom
+   ========================================================== */
+.vd-img-wrap { position: relative; }
+.vd-img-wrap.empty {
+  background: linear-gradient(135deg, var(--black-2), var(--black-3));
+}
+.vd-no-image {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray);
+  font-size: 13px;
+}
+
+.vd-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 3;
+  transition: background .15s, transform .15s;
+}
+.vd-arrow:hover { background: rgba(225,29,42,.7); transform: translateY(-50%) scale(1.05); }
+.vd-arrow-left  { left: 14px; }
+.vd-arrow-right { right: 14px; }
+
+.vd-counter {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,.65);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-family: var(--header-fonts);
+  font-size: 12px;
+  letter-spacing: .12em;
+  z-index: 3;
+}
+.vd-zoom {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.55);
+  border: 1px solid rgba(255,255,255,.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 3;
+  transition: background .15s;
+}
+.vd-zoom:hover { background: rgba(225,29,42,.7); }
+
+/* En desktop, los thumbs verticales hacen que el zoom y counter
+   se vean mejor con padding extra. */
+@media (min-width: 900px) {
+  .vd-arrow { width: 52px; height: 52px; }
+  .vd-arrow-left  { left: 20px; }
+  .vd-arrow-right { right: 20px; }
+}
+
+/* ==========================================================
+   LIGHTBOX — full-screen modal
+   ========================================================== */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.95);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: lb-fadein .2s ease-out;
+}
+@keyframes lb-fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.lb-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  transition: background .15s;
+}
+.lb-close:hover { background: var(--red); }
+.lb-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+}
+.lb-img {
+  max-width: 100%;
+  max-height: calc(100vh - 140px);
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 30px 60px rgba(0,0,0,.6);
+}
+.lb-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.16);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .15s, transform .15s;
+}
+.lb-arrow:hover { background: var(--red); transform: translateY(-50%) scale(1.06); }
+.lb-arrow-left  { left: 20px; }
+.lb-arrow-right { right: 20px; }
+.lb-footer {
+  position: absolute;
+  bottom: 20px;
+  left: 0; right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  align-items: center;
+  color: var(--silver);
+  font-family: var(--header-fonts);
+  font-size: 13px;
+  letter-spacing: .14em;
+}
+.lb-counter {
+  background: rgba(255,255,255,.08);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .lb-arrow { width: 44px; height: 44px; }
+  .lb-arrow-left  { left: 8px; }
+  .lb-arrow-right { right: 8px; }
+  .lb-img { max-height: calc(100vh - 100px); }
+}
+
+/* ==========================================================
+   HERO PREVIEW EN EDITOR
+   ========================================================== */
+.hero-preview {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--black-3);
+  border-radius: 12px;
+  border: 1px solid var(--gray-2);
+  margin-bottom: 10px;
+}
+.hero-preview-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+@media (min-width: 900px) {
+  .hero-preview { height: 280px; }
+}
+
+/* ==========================================================
    DESKTOP ≥900px — rediseño layout web
    ========================================================== */
 @media (min-width: 900px) {

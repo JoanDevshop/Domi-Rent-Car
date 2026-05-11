@@ -299,11 +299,14 @@ export async function getCurrentUser() {
 }
 
 // ────────────────────────────────────────────────────────────
-// Storage: vehicle images
+// Storage: uploads (genérico)
 // ────────────────────────────────────────────────────────────
-export async function uploadVehicleImage(file, vehicleId) {
+// Sube cualquier archivo al bucket. `folder` define el prefix
+// (ej. 'vehicles/<id>', 'hero', 'misc'). Acepta image/* y video/*.
+export async function uploadImage(file, folder = 'misc') {
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-  const path = `${vehicleId || 'tmp'}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const safe = folder.replace(/[^a-z0-9/_-]/gi, '_');
+  const path = `${safe}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { error } = await supabase.storage
     .from(VEHICLE_BUCKET)
     .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
@@ -312,11 +315,18 @@ export async function uploadVehicleImage(file, vehicleId) {
   return data.publicUrl;
 }
 
-export async function deleteVehicleImageByUrl(url) {
-  // Saca el path después de '/storage/v1/object/public/<bucket>/'
+// Compatibilidad con código existente
+export async function uploadVehicleImage(file, vehicleId) {
+  return uploadImage(file, `vehicles/${vehicleId || 'tmp'}`);
+}
+
+export async function deleteImageByUrl(url) {
+  if (!url) return;
   const marker = `/storage/v1/object/public/${VEHICLE_BUCKET}/`;
   const idx = url.indexOf(marker);
-  if (idx === -1) return; // URL externa (Unsplash), no borrar
+  if (idx === -1) return; // URL externa, no borrar
   const path = url.slice(idx + marker.length);
   await supabase.storage.from(VEHICLE_BUCKET).remove([path]);
 }
+
+export const deleteVehicleImageByUrl = deleteImageByUrl; // alias retro
