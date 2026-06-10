@@ -472,7 +472,7 @@ textarea { resize: vertical; }
 .vcard-price small { color: var(--gray); font-size: 10px; margin-left: 3px; }
 
 /* ── Financiamiento (Affirm / Klarna / Afterpay) ── */
-.fin-badges { display: flex; flex-direction: column; gap: 6px; }
+.fin-badges { display: flex; flex-direction: column; gap: 8px; }
 .fin-label {
   font-size: 10px;
   letter-spacing: .1em;
@@ -480,22 +480,34 @@ textarea { resize: vertical; }
   color: var(--gray);
   font-weight: 700;
 }
-.fin-logos { display: flex; align-items: center; gap: 14px; }
-.fin-logo { display: block; width: auto; opacity: .92; }
-/* tamaños ópticos por marca para que las tres se vean del mismo peso */
-.fin-affirm   { height: 17px; }
-.fin-klarna   { height: 15px; }
-.fin-afterpay { height: 13px; }
+.fin-logos { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fin-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.fin-chip--pill { background: #fff; }     /* fondo blanco para logos negros */
+.fin-chip--bare { background: transparent; } /* Klarna ya es un badge */
+.fin-logo { display: block; width: auto; }
 
-/* variante compacta para las cards del catálogo */
+/* variante detalle (md) */
+.fin-md { margin-top: 12px; }
+.fin-md .fin-chip { height: 30px; border-radius: 7px; }
+.fin-md .fin-chip--pill { padding: 0 10px; }
+.fin-md .fin-affirm   .fin-logo { height: 18px; }
+.fin-md .fin-klarna   .fin-logo { height: 30px; }
+.fin-md .fin-afterpay .fin-logo { height: 15px; }
+
+/* variante card del catálogo (sm) */
 .fin-sm { margin-top: 8px; }
-.fin-sm .fin-logos { gap: 10px; }
-.fin-sm .fin-affirm   { height: 12px; }
-.fin-sm .fin-klarna   { height: 11px; }
-.fin-sm .fin-afterpay { height: 9px; }
-
-/* variante en la página de detalle */
-.fin-md { margin-top: 10px; }
+.fin-sm .fin-logos { gap: 6px; }
+.fin-sm .fin-chip { height: 19px; border-radius: 5px; }
+.fin-sm .fin-chip--pill { padding: 0 6px; }
+.fin-sm .fin-affirm   .fin-logo { height: 11px; }
+.fin-sm .fin-klarna   .fin-logo { height: 19px; }
+.fin-sm .fin-afterpay .fin-logo { height: 9px; }
 
 .empty {
   grid-column: 1/-1;

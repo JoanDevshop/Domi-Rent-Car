@@ -528,10 +528,13 @@ function Perk({ icon, title, sub }) {
   );
 }
 
+// Logos reales de financiamiento. Affirm/Afterpay son negros → van en
+// pastilla blanca para verse sobre el fondo oscuro; Klarna ya trae su
+// badge rosado, va sin pastilla.
 const FINANCING_LOGOS = [
-  { src: "/assets/pay/affirm.svg", alt: "Affirm" },
-  { src: "/assets/pay/klarna.svg", alt: "Klarna" },
-  { src: "/assets/pay/afterpay.svg", alt: "Afterpay" },
+  { src: "/assets/pay/affirm.png", alt: "Affirm", pill: true },
+  { src: "/assets/pay/klarna.svg", alt: "Klarna", pill: false },
+  { src: "/assets/pay/afterpay.png", alt: "Afterpay", pill: true },
 ];
 
 function FinancingBadges({ size = "md", label }) {
@@ -540,13 +543,12 @@ function FinancingBadges({ size = "md", label }) {
       {label && <span className="fin-label">{label}</span>}
       <div className="fin-logos">
         {FINANCING_LOGOS.map((p) => (
-          <img
+          <span
             key={p.alt}
-            className={`fin-logo fin-${p.alt.toLowerCase()}`}
-            src={p.src}
-            alt={p.alt}
-            loading="lazy"
-          />
+            className={`fin-chip ${p.pill ? "fin-chip--pill" : "fin-chip--bare"} fin-${p.alt.toLowerCase()}`}
+          >
+            <img className="fin-logo" src={p.src} alt={p.alt} loading="lazy" decoding="async" />
+          </span>
         ))}
       </div>
     </div>
