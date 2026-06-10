@@ -507,6 +507,7 @@ function VehicleCard({ v, onClick }) {
         </div>
         <div className="vcard-price">
           <strong>{fmtMoney(v.pricePerDay)}</strong><small>/día</small>
+          <FinancingBadges size="sm" />
         </div>
       </div>
     </button>
@@ -520,6 +521,31 @@ function Perk({ icon, title, sub }) {
       <div>
         <strong>{title}</strong>
         <span>{sub}</span>
+      </div>
+    </div>
+  );
+}
+
+const FINANCING_LOGOS = [
+  { src: "/assets/pay/affirm.svg", alt: "Affirm" },
+  { src: "/assets/pay/klarna.svg", alt: "Klarna" },
+  { src: "/assets/pay/afterpay.svg", alt: "Afterpay" },
+];
+
+function FinancingBadges({ size = "md", label }) {
+  return (
+    <div className={`fin-badges fin-${size}`}>
+      {label && <span className="fin-label">{label}</span>}
+      <div className="fin-logos">
+        {FINANCING_LOGOS.map((p) => (
+          <img
+            key={p.alt}
+            className={`fin-logo fin-${p.alt.toLowerCase()}`}
+            src={p.src}
+            alt={p.alt}
+            loading="lazy"
+          />
+        ))}
       </div>
     </div>
   );
@@ -603,6 +629,7 @@ function VehicleScreen({ ctx, vehicleId }) {
         <div>
           <h1>{v.name}</h1>
           <div className="vd-sub">{v.year} · {v.color}</div>
+          <FinancingBadges size="md" label="Paga a plazos con" />
         </div>
         <div className="vd-price-tag">
           <strong>{fmtMoney(v.pricePerDay)}</strong>

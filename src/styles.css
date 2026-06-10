@@ -462,6 +462,32 @@ textarea { resize: vertical; }
 .vcard-price strong { color: var(--red); font-size: 17px; font-family: var(--header-fonts); letter-spacing: .04em; }
 .vcard-price small { color: var(--gray); font-size: 10px; margin-left: 3px; }
 
+/* ── Financiamiento (Affirm / Klarna / Afterpay) ── */
+.fin-badges { display: flex; flex-direction: column; gap: 6px; }
+.fin-label {
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--gray);
+  font-weight: 700;
+}
+.fin-logos { display: flex; align-items: center; gap: 14px; }
+.fin-logo { display: block; width: auto; opacity: .92; }
+/* tamaños ópticos por marca para que las tres se vean del mismo peso */
+.fin-affirm   { height: 17px; }
+.fin-klarna   { height: 15px; }
+.fin-afterpay { height: 13px; }
+
+/* variante compacta para las cards del catálogo */
+.fin-sm { margin-top: 8px; }
+.fin-sm .fin-logos { gap: 10px; }
+.fin-sm .fin-affirm   { height: 12px; }
+.fin-sm .fin-klarna   { height: 11px; }
+.fin-sm .fin-afterpay { height: 9px; }
+
+/* variante en la página de detalle */
+.fin-md { margin-top: 10px; }
+
 .empty {
   grid-column: 1/-1;
   text-align: center;
