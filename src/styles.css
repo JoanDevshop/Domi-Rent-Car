@@ -489,6 +489,7 @@ textarea { resize: vertical; }
   overflow: hidden;
 }
 .fin-chip--pill { background: #fff; }     /* fondo blanco para logos negros */
+.fin-afterpay.fin-chip--pill { background: #B2FCE4; } /* menta oficial Afterpay */
 .fin-chip--bare { background: transparent; } /* Klarna ya es un badge */
 .fin-logo { display: block; width: auto; }
 
