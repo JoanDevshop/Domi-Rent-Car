@@ -475,7 +475,8 @@ function SiteFooter({ ctx }) {
 function FeaturedCard({ v, onClick }) {
   return (
     <button className="featured-card" onClick={onClick}>
-      <div className="fc-img" style={{ backgroundImage: `url(${v.images[0]})` }}>
+      <div className="fc-img">
+        <img className="card-img" src={v.images[0]} alt={v.name} loading="eager" decoding="async" />
         <div className="fc-tag">{v.category}</div>
         {!v.available && <div className="fc-unavail">NO DISPONIBLE</div>}
       </div>
@@ -493,7 +494,8 @@ function FeaturedCard({ v, onClick }) {
 function VehicleCard({ v, onClick }) {
   return (
     <button className={`vcard ${!v.available ? "disabled" : ""}`} onClick={onClick}>
-      <div className="vcard-img" style={{ backgroundImage: `url(${v.images[0]})` }}>
+      <div className="vcard-img">
+        <img className="card-img" src={v.images[0]} alt={v.name} loading="lazy" decoding="async" />
         <span className="vcard-cat">{v.category}</span>
         {!v.available && <span className="vcard-unavail">EN RENTA</span>}
         {v.featured && v.available && <span className="vcard-star"><Icon name="star" size={12} color="#fff" /></span>}

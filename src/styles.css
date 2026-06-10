@@ -323,10 +323,9 @@ textarea { resize: vertical; }
 .featured-card:active { transform: scale(.98); }
 .fc-img {
   height: 180px;
-  background-size: cover;
-  background-position: center;
   background-color: var(--black-3);
   position: relative;
+  overflow: hidden;
 }
 .fc-tag {
   position: absolute; top: 10px; left: 10px;
@@ -409,10 +408,20 @@ textarea { resize: vertical; }
 .vcard.disabled { opacity: .6; }
 .vcard-img {
   height: 110px;
-  background-size: cover;
-  background-position: center;
   background-color: var(--black-3);
   position: relative;
+  overflow: hidden;
+}
+/* imagen real de la card: llena el contenedor (mismo crop que el viejo
+   background cover) y permite lazy-load nativo del navegador */
+.card-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
 }
 .vcard-cat {
   position: absolute; top: 6px; left: 6px;

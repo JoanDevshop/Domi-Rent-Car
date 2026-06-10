@@ -301,15 +301,43 @@ export async function getCurrentUser() {
 // ────────────────────────────────────────────────────────────
 // Storage: uploads (genérico)
 // ────────────────────────────────────────────────────────────
+// Convierte imágenes a WebP y las redimensiona en el navegador antes
+// de subir, para que el sitio cargue ligero. Los videos y GIF pasan
+// sin tocar (GIF perdería la animación). Si algo falla, sube el original.
+const MAX_IMG_DIM = 1600;   // lado mayor; suficiente para hero/galería
+const WEBP_QUALITY = 0.82;  // buen balance peso/calidad
+
+async function compressToWebp(file) {
+  if (!file.type?.startsWith('image/') || file.type === 'image/gif') return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_IMG_DIM / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+    const blob = await new Promise(res => canvas.toBlob(res, 'image/webp', WEBP_QUALITY));
+    if (!blob || blob.size >= file.size) return file; // no mejoró → original
+    const name = file.name.replace(/\.[^.]+$/, '') + '.webp';
+    return new File([blob], name, { type: 'image/webp' });
+  } catch {
+    return file; // navegador viejo o decode falló → sube original
+  }
+}
+
 // Sube cualquier archivo al bucket. `folder` define el prefix
 // (ej. 'vehicles/<id>', 'hero', 'misc'). Acepta image/* y video/*.
 export async function uploadImage(file, folder = 'misc') {
+  file = await compressToWebp(file);
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
   const safe = folder.replace(/[^a-z0-9/_-]/gi, '_');
   const path = `${safe}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { error } = await supabase.storage
     .from(VEHICLE_BUCKET)
-    .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+    .upload(path, file, { cacheControl: '31536000', upsert: false, contentType: file.type });
   if (error) throw error;
   const { data } = supabase.storage.from(VEHICLE_BUCKET).getPublicUrl(path);
   return data.publicUrl;
