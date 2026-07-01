@@ -13,7 +13,6 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.105.4",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },

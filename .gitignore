@@ -11,6 +11,10 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+server/data
+*.db
+*.db-*
 
 # Lock file excluded — CF Workers Builds / Railway use npm ci on lock
 # which fails when the lock was generated on a different platform

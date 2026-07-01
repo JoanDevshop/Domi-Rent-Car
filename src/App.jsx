@@ -4,10 +4,9 @@ import { applySeo } from './seo';
 import {
   fetchVehicles, upsertVehicle, deleteVehicle, setVehicleAvailability,
   fetchBusinessInfo, updateBusinessInfo,
-  signInAnonymous, signOut, onAuthChange, getCurrentUser,
+  login, signOut, getCurrentUser,
   uploadVehicleImage, uploadImage, deleteImageByUrl, deleteVehicleImageByUrl,
-  fetchAppUsersForLogin, fetchAppUsers, createAppUser, updateAppUser, deleteAppUser,
-  verifyPassword,
+  fetchAppUsers, createAppUser, updateAppUser, deleteAppUser,
 } from './api';
 
 // ────────────────────────────────────────────────────────────
@@ -113,23 +112,16 @@ function App() {
         if (!alive) return;
         setVehicles(vs);
         setBusinessInfo(bi);
-        setAdminUser(user);
-        // Si no hay sesión Supabase pero sí hay appUser local → limpiar local
-        if (!user && loadAppUser()) {
-          saveAppUser(null);
-          setAppUser(null);
-        }
+        setAdminUser(user);   // el token (localStorage) es la única fuente de verdad
+        setAppUser(user);
+        saveAppUser(user);
       } catch (e) {
         if (alive) setLoadError(e.message || 'Error cargando datos');
       } finally {
         if (alive) setLoading(false);
       }
     })();
-    const unsub = onAuthChange((u) => {
-      setAdminUser(u);
-      if (!u) { saveAppUser(null); setAppUser(null); }
-    });
-    return () => { alive = false; unsub?.(); };
+    return () => { alive = false; };
   }, []);
 
   useEffect(() => {
@@ -775,30 +767,16 @@ function AdminScreen({ ctx }) {
   const tryLogin = async () => {
     setError(""); setLoading(true);
     try {
-      const users = await fetchAppUsersForLogin();
-      if (!users || users.length === 0) {
-        throw new Error("No hay usuarios. Corre supabase/users-system.sql primero.");
-      }
-      let matched = null;
-      for (const u of users) {
-        if (await verifyPassword(pwd, u.passwordHash)) { matched = u; break; }
-      }
-      if (!matched) throw new Error("Contraseña incorrecta");
-      await signInAnonymous();
-      setAppUser({ id: matched.id, name: matched.name, role: matched.role });
+      const user = await login(pwd);   // verifica server-side y guarda el token
+      setAppUser(user);                // ctx.setAppUser persiste en localStorage
     }
     catch (e) {
-      const msg = e.message || "Error de login";
-      if (msg.toLowerCase().includes('anonymous') || msg.toLowerCase().includes('disabled')) {
-        setError("Habilita 'Anonymous sign-ins' en Supabase → Authentication → Settings.");
-      } else {
-        setError(msg);
-      }
+      setError(e.message || "Contraseña incorrecta");
     }
     finally { setLoading(false); }
   };
 
-  if (!adminUser || !appUser) {
+  if (!appUser) {   // el token en localStorage es la sesión; appUser lo refleja
     return (
       <div className="admin-login">
         <button className="icon-btn solid login-back" onClick={() => goto({ name: "home" })}><Icon name="back" size={18} color="#fff" /></button>

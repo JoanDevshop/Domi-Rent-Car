@@ -1,0 +1,25 @@
+# Domi Rent Car — backend self-host. Va en /opt/domi/ del VPS.
+# Se une a la red `hub` (externa) para que hub_cloudflared lo alcance por nombre.
+# Public hostname del tunnel → Service URL: http://domi_api:8080
+services:
+  domi_api:
+    build: ./server
+    container_name: domi_api
+    restart: always
+    env_file:
+      - .env                       # DOMI_AUTH_SECRET + DOMI_ADMIN_PASSWORD (seed)
+    environment:
+      PORT: 8080
+      DOMI_DATA_DIR: /data
+      PUBLIC_URL: https://api.domirentcar.com
+    volumes:
+      - domi_data:/data          # sqlite + uploads (incluir en backup cron)
+    networks:
+      - hub_network
+
+volumes:
+  domi_data:
+
+networks:
+  hub_network:
+    external: true

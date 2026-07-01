@@ -1,6 +1,20 @@
-import { supabase } from './supabase';
+// Cliente del backend self-host (api.domirentcar.com). Reemplaza Supabase.
+const API = (import.meta.env.VITE_API_URL || 'https://api.domirentcar.com').replace(/\/$/, '');
+const TOKEN_KEY = 'domi_token';
+const getToken = () => localStorage.getItem(TOKEN_KEY);
+const setToken = (t) => (t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY));
 
-const VEHICLE_BUCKET = 'domirentcar';
+async function req(path, { method = 'GET', body, auth = false } = {}) {
+  const headers = {};
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (auth) headers.Authorization = `Bearer ${getToken()}`;
+  const r = await fetch(API + path, {
+    method, headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || `HTTP ${r.status}`);
+  return r.status === 204 ? null : r.json();
+}
 
 // ────────────────────────────────────────────────────────────
 // Mappers DB ↔ App  (snake_case ↔ camelCase)
@@ -110,202 +124,86 @@ const businessToRow = (b) => ({
   perks: b.perks ?? [],
 });
 
+const userFromRow = (r) => ({
+  id: r.id,
+  name: r.name,
+  role: r.role,
+  createdAt: r.created_at,
+});
+
 // ────────────────────────────────────────────────────────────
 // Vehicles
 // ────────────────────────────────────────────────────────────
 export async function fetchVehicles() {
-  const { data, error } = await supabase
-    .from('vehicles')
-    .select('*')
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return (data || []).map(vehicleFromRow);
+  return (await req('/api/vehicles')).map(vehicleFromRow);
 }
 
 export async function upsertVehicle(v) {
-  const row = vehicleToRow(v);
-  const { data, error } = await supabase
-    .from('vehicles')
-    .upsert(row, { onConflict: 'id' })
-    .select()
-    .single();
-  if (error) throw error;
-  return vehicleFromRow(data);
+  return vehicleFromRow(await req('/api/vehicles', { method: 'PUT', body: vehicleToRow(v), auth: true }));
 }
 
 export async function deleteVehicle(id) {
-  const { error } = await supabase.from('vehicles').delete().eq('id', id);
-  if (error) throw error;
+  await req(`/api/vehicles/${encodeURIComponent(id)}`, { method: 'DELETE', auth: true });
 }
 
 export async function setVehicleAvailability(id, available) {
-  const { data, error } = await supabase
-    .from('vehicles')
-    .update({ available })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return vehicleFromRow(data);
+  return vehicleFromRow(
+    await req(`/api/vehicles/${encodeURIComponent(id)}/availability`, { method: 'PATCH', body: { available }, auth: true })
+  );
 }
 
 // ────────────────────────────────────────────────────────────
 // Business info (singleton)
 // ────────────────────────────────────────────────────────────
 export async function fetchBusinessInfo() {
-  const { data, error } = await supabase
-    .from('business_info')
-    .select('*')
-    .eq('id', 1)
-    .single();
-  if (error) throw error;
-  return businessFromRow(data);
+  return businessFromRow(await req('/api/business-info'));
 }
 
 export async function updateBusinessInfo(b) {
-  const row = businessToRow(b);
-  const { data, error } = await supabase
-    .from('business_info')
-    .update(row)
-    .eq('id', 1)
-    .select()
-    .single();
-  if (error) throw error;
-  return businessFromRow(data);
+  return businessFromRow(await req('/api/business-info', { method: 'PUT', body: businessToRow(b), auth: true }));
 }
 
 // ────────────────────────────────────────────────────────────
-// Password hashing — PBKDF2-SHA256, 100000 iter, 32 bytes output
-// Format en DB: "<salt_b64>$<hash_b64>"
+// App users
 // ────────────────────────────────────────────────────────────
-const PBKDF2_ITER = 100000;
-
-const u8ToB64 = (u8) => btoa(String.fromCharCode(...u8));
-const b64ToU8 = (s) => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-
-export async function hashPassword(password, saltB64 = null) {
-  const enc = new TextEncoder();
-  const saltBytes = saltB64
-    ? b64ToU8(saltB64)
-    : crypto.getRandomValues(new Uint8Array(16));
-  const key = await crypto.subtle.importKey(
-    'raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']
-  );
-  const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt: saltBytes, iterations: PBKDF2_ITER, hash: 'SHA-256' },
-    key, 256
-  );
-  return `${u8ToB64(saltBytes)}$${u8ToB64(new Uint8Array(bits))}`;
-}
-
-export async function verifyPassword(password, storedHash) {
-  if (!storedHash || !storedHash.includes('$')) return false;
-  const [saltB64] = storedHash.split('$');
-  const reHashed = await hashPassword(password, saltB64);
-  return reHashed === storedHash;
-}
-
-// ────────────────────────────────────────────────────────────
-// App users (admin del sistema, con roles)
-// ────────────────────────────────────────────────────────────
-const userFromRow = (r) => ({
-  id: r.id,
-  name: r.name,
-  role: r.role,
-  passwordHash: r.password_hash,
-  createdAt: r.created_at,
-});
-
 export async function fetchAppUsers() {
-  const { data, error } = await supabase
-    .from('app_users')
-    .select('*')
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return (data || []).map(userFromRow);
-}
-
-export async function fetchAppUsersForLogin() {
-  // Solo lo que necesitamos para verificar password (sin metadata pesada)
-  const { data, error } = await supabase
-    .from('app_users')
-    .select('id, name, role, password_hash');
-  if (error) throw error;
-  return (data || []).map(userFromRow);
+  return (await req('/api/app-users', { auth: true })).map(userFromRow);
 }
 
 export async function createAppUser({ name, password, role }) {
-  const password_hash = await hashPassword(password);
-  const { data, error } = await supabase
-    .from('app_users')
-    .insert({ name, password_hash, role })
-    .select()
-    .single();
-  if (error) throw error;
-  return userFromRow(data);
+  return userFromRow(await req('/api/app-users', { method: 'POST', body: { name, password, role }, auth: true }));
 }
 
 export async function updateAppUser(id, { name, password, role }) {
-  const patch = {};
-  if (name !== undefined) patch.name = name;
-  if (role !== undefined) patch.role = role;
-  if (password) patch.password_hash = await hashPassword(password);
-  const { data, error } = await supabase
-    .from('app_users')
-    .update(patch)
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return userFromRow(data);
+  return userFromRow(await req(`/api/app-users/${id}`, { method: 'PATCH', body: { name, password, role }, auth: true }));
 }
 
 export async function deleteAppUser(id) {
-  const { error } = await supabase.from('app_users').delete().eq('id', id);
-  if (error) throw error;
+  await req(`/api/app-users/${id}`, { method: 'DELETE', auth: true });
 }
 
 // ────────────────────────────────────────────────────────────
-// Auth
+// Auth — password verificado server-side, token propio en localStorage
 // ────────────────────────────────────────────────────────────
-export async function signIn(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
-  return data.user;
+export async function login(password) {
+  const { token, user } = await req('/api/login', { method: 'POST', body: { password } });
+  setToken(token);
+  return { id: user.id, name: user.name, role: user.role };
 }
 
-// Sesión anónima — usada por el flujo admin con password local.
-// Requiere habilitar "Anonymous sign-ins" en Supabase Auth → Settings.
-export async function signInAnonymous() {
-  const { data, error } = await supabase.auth.signInAnonymously();
-  if (error) throw error;
-  return data.user;
-}
-
-export async function signOut() {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
-}
-
-export function onAuthChange(cb) {
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => cb(session?.user ?? null));
-  return () => data.subscription.unsubscribe();
-}
+export async function signOut() { setToken(null); }
 
 export async function getCurrentUser() {
-  const { data } = await supabase.auth.getUser();
-  return data.user ?? null;
+  if (!getToken()) return null;
+  try { return await req('/api/me', { auth: true }); }
+  catch { setToken(null); return null; }
 }
 
 // ────────────────────────────────────────────────────────────
-// Storage: uploads (genérico)
+// Uploads — compress a WebP en el browser + sharp de respaldo en el server
 // ────────────────────────────────────────────────────────────
-// Convierte imágenes a WebP y las redimensiona en el navegador antes
-// de subir, para que el sitio cargue ligero. Los videos y GIF pasan
-// sin tocar (GIF perdería la animación). Si algo falla, sube el original.
-const MAX_IMG_DIM = 1600;   // lado mayor; suficiente para hero/galería
-const WEBP_QUALITY = 0.82;  // buen balance peso/calidad
+const MAX_IMG_DIM = 1600;   // lado mayor
+const WEBP_QUALITY = 0.82;
 
 async function compressToWebp(file) {
   if (!file.type?.startsWith('image/') || file.type === 'image/gif') return file;
@@ -320,41 +218,36 @@ async function compressToWebp(file) {
     canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
     bitmap.close?.();
     const blob = await new Promise(res => canvas.toBlob(res, 'image/webp', WEBP_QUALITY));
-    if (!blob || blob.size >= file.size) return file; // no mejoró → original
+    if (!blob || blob.size >= file.size) return file;
     const name = file.name.replace(/\.[^.]+$/, '') + '.webp';
     return new File([blob], name, { type: 'image/webp' });
   } catch {
-    return file; // navegador viejo o decode falló → sube original
+    return file;
   }
 }
 
-// Sube cualquier archivo al bucket. `folder` define el prefix
-// (ej. 'vehicles/<id>', 'hero', 'misc'). Acepta image/* y video/*.
+// Sube al server. `folder` define el prefix (ej. 'vehicles/<id>', 'hero').
 export async function uploadImage(file, folder = 'misc') {
   file = await compressToWebp(file);
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-  const safe = folder.replace(/[^a-z0-9/_-]/gi, '_');
-  const path = `${safe}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const { error } = await supabase.storage
-    .from(VEHICLE_BUCKET)
-    .upload(path, file, { cacheControl: '31536000', upsert: false, contentType: file.type });
-  if (error) throw error;
-  const { data } = supabase.storage.from(VEHICLE_BUCKET).getPublicUrl(path);
-  return data.publicUrl;
+  const fd = new FormData();
+  fd.append('folder', folder);            // debe ir ANTES del file (parseo por stream)
+  fd.append('file', file, file.name);
+  const r = await fetch(API + '/api/upload', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${getToken()}` },
+    body: fd,
+  });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error || `HTTP ${r.status}`);
+  return (await r.json()).url;
 }
 
-// Compatibilidad con código existente
 export async function uploadVehicleImage(file, vehicleId) {
   return uploadImage(file, `vehicles/${vehicleId || 'tmp'}`);
 }
 
 export async function deleteImageByUrl(url) {
   if (!url) return;
-  const marker = `/storage/v1/object/public/${VEHICLE_BUCKET}/`;
-  const idx = url.indexOf(marker);
-  if (idx === -1) return; // URL externa, no borrar
-  const path = url.slice(idx + marker.length);
-  await supabase.storage.from(VEHICLE_BUCKET).remove([path]);
+  await req('/api/upload', { method: 'DELETE', body: { url }, auth: true }).catch(() => {});
 }
 
 export const deleteVehicleImageByUrl = deleteImageByUrl; // alias retro
