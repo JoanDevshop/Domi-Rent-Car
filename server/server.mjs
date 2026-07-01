@@ -1,6 +1,7 @@
 // DOMI RENT CAR — backend self-host (Node + Fastify + SQLite + sharp)
 // Espejo de src/api.js. Egress de fotos servido local (Cloudflare cachea).
 import Fastify from 'fastify';
+import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
 import fstatic from '@fastify/static';
 import Database from 'better-sqlite3';
@@ -36,6 +37,7 @@ function userFromToken(token) {
 }
 
 const app = Fastify({ bodyLimit: 30 * 1024 * 1024 });
+await app.register(cors, { origin: [/^https:\/\/([a-z0-9-]+\.)*domirentcar\.com$/] }); // apex + www + subdominios
 await app.register(multipart, { limits: { fileSize: 60 * 1024 * 1024 } });
 await app.register(fstatic, {
   root: UPLOAD_DIR, prefix: '/uploads/',
