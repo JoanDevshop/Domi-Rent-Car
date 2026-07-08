@@ -54,6 +54,7 @@ for (const v of vehicles) {
   for (const im of imgs) v.images.push(await localizeUrl(im));
   const cols = Object.keys(v);
   const row = { ...v, images: JSON.stringify(v.images) };
+  for (const k of cols) if (typeof row[k] === 'boolean') row[k] = row[k] ? 1 : 0; // better-sqlite3 no bindea booleans
   db.prepare(
     `insert into vehicles (${cols.join(',')}) values (${cols.map(c => '@' + c).join(',')})
      on conflict(id) do update set ${cols.filter(c => c !== 'id').map(c => `${c}=excluded.${c}`).join(',')}`

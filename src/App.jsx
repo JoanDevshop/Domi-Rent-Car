@@ -89,11 +89,28 @@ const waLink = (number, text) =>
 
 const newVehicleId = () => "v" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
+// ── Routing (History API, sin deps) ──
+const slugify = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+function pathForView(v, vehicles) {
+  if (v.name === 'vehicle') { const veh = vehicles.find(x => x.id === v.id); return `/vehiculo/${veh ? slugify(veh.name) : v.id}`; }
+  if (v.name === 'about') return '/nosotros';
+  if (v.name === 'admin') return '/admin';
+  return '/';
+}
+function viewForPath(path, vehicles) {
+  const m = path.match(/^\/vehiculo\/([^/]+)/);
+  if (m) { const key = decodeURIComponent(m[1]); const veh = vehicles.find(x => slugify(x.name) === key || x.id === key); return veh ? { name: 'vehicle', id: veh.id } : { name: 'home' }; }
+  if (path.startsWith('/nosotros')) return { name: 'about' };
+  if (path.startsWith('/admin')) return { name: 'admin' };
+  return { name: 'home' };
+}
+
 function App() {
-  const [view, setView] = useState({ name: "home" });
+  const [view, setView] = useState(() => viewForPath(window.location.pathname, []));
   const [vehicles, setVehicles] = useState([]);
   const [businessInfo, setBusinessInfo] = useState(DEFAULT_BUSINESS_INFO);
-  const [adminUser, setAdminUser] = useState(null);     // sesión Supabase (para RLS)
+  const [adminUser, setAdminUser] = useState(null);     // usuario admin (token); RLS no aplica — backend self-host SQLite
   const [appUser, setAppUser] = useState(loadAppUser);  // usuario lógico con rol
   const [filter, setFilter] = useState("Todos");
   const [loading, setLoading] = useState(true);
@@ -115,6 +132,9 @@ function App() {
         setAdminUser(user);   // el token (localStorage) es la única fuente de verdad
         setAppUser(user);
         saveAppUser(user);
+        // deep-link: resolver /vehiculo/<slug> ahora que ya hay vehículos
+        const dl = viewForPath(window.location.pathname, vs);
+        setView(cur => (cur.name === 'home' && dl.name !== 'home') ? dl : cur);
       } catch (e) {
         if (alive) setLoadError(e.message || 'Error cargando datos');
       } finally {
@@ -125,9 +145,18 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") setView({ name: "home" }); };
+    const onKey = (e) => { if (e.key === "Escape") { window.history.pushState(null, "", "/"); setView({ name: "home" }); } };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Routing: sincroniza back/forward del browser con la vista
+  const vehiclesRef = useRef(vehicles);
+  useEffect(() => { vehiclesRef.current = vehicles; }, [vehicles]);
+  useEffect(() => {
+    const onPop = () => setView(viewForPath(window.location.pathname, vehiclesRef.current));
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, []);
 
   // SEO: actualizar title + meta tags al cambiar de vista
@@ -136,6 +165,8 @@ function App() {
   }, [view, vehicles, businessInfo]);
 
   const goto = (v) => {
+    const path = pathForView(v, vehicles);
+    if (path !== window.location.pathname) window.history.pushState(null, "", path);
     setView(v);
     window.scrollTo?.(0, 0);
     document.querySelector(".phone-scroll")?.scrollTo?.(0, 0);
@@ -318,8 +349,8 @@ function HomeScreen({ ctx }) {
               <span className="section-sub">Lo mejor de la flota</span>
             </div>
             <div className="featured-rail">
-              {featured.map(v => (
-                <FeaturedCard key={v.id} v={v} onClick={() => goto({ name: "vehicle", id: v.id })} />
+              {featured.map((v, i) => (
+                <FeaturedCard key={v.id} v={v} eager={i < 2} onClick={() => goto({ name: "vehicle", id: v.id })} />
               ))}
             </div>
           </div>
@@ -464,11 +495,11 @@ function SiteFooter({ ctx }) {
   );
 }
 
-function FeaturedCard({ v, onClick }) {
+function FeaturedCard({ v, onClick, eager = false }) {
   return (
     <button className="featured-card" onClick={onClick}>
       <div className="fc-img">
-        <img className="card-img" src={v.images[0]} alt={v.name} loading="eager" decoding="async" />
+        <img className="card-img" src={v.images[0]} alt={v.name} loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" />
         <div className="fc-tag">{v.category}</div>
         {!v.available && <div className="fc-unavail">NO DISPONIBLE</div>}
       </div>

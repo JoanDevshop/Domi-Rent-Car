@@ -34,7 +34,7 @@ export function applySeo({ view, vehicles, businessInfo: bi }) {
   let description = bi?.heroSubtitle ||
     'Renta de vehículos premium en República Dominicana. Reserva por WhatsApp en minutos.';
   let ogImage = bi?.heroImageUrl || '/assets/logo.png';
-  let canonical = baseUrl + '/';
+  let canonical = baseUrl + (typeof window !== 'undefined' ? window.location.pathname : '/');
 
   // Por vista
   if (view?.name === 'vehicle') {

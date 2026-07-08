@@ -34,7 +34,9 @@ export function issueToken(uid) {
 export function verifyToken(token) {
   if (!token) return null;
   const [payload, sig] = token.split('.');
-  if (!payload || !sig || hmac(payload) !== sig) return null;
+  if (!payload || !sig) return null;
+  const exp = Buffer.from(hmac(payload)), got = Buffer.from(sig);
+  if (exp.length !== got.length || !crypto.timingSafeEqual(exp, got)) return null; // constant-time
   let p; try { p = JSON.parse(Buffer.from(payload, 'base64url').toString()); } catch { return null; }
   return p.exp && p.exp >= now() ? p : null;
 }
