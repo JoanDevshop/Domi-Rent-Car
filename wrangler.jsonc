@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/wrangler.json",
-  "name": "domi-rent-car",
+  "name": "domirentcar",
   "compatibility_date": "2025-05-01",
   "assets": {
     "directory": "./dist",
