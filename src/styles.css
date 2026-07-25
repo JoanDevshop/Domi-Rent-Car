@@ -2427,3 +2427,75 @@ img, video, iframe { max-width: 100%; height: auto; }
   .catalog-section .grid { grid-template-columns: repeat(4, 1fr); }
   .featured-rail { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ==========================================================
+   SEO — City landing pages + FAQ
+   ========================================================== */
+.city-hero {
+  background: #0A0A0B;
+  padding: 96px 0 48px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.city-hero h1 {
+  font-family: var(--header-fonts);
+  font-size: clamp(26px, 4.5vw, 42px);
+  line-height: 1.15;
+  letter-spacing: .03em;
+  color: var(--white);
+  margin: 0 0 18px;
+}
+.city-hero p {
+  color: var(--silver);
+  line-height: 1.7;
+  font-size: 15px;
+  max-width: 720px;
+  margin: 0 0 14px;
+}
+.city-hero .hero-ctas { margin-top: 22px; }
+
+.faq-section {
+  background: #0A0A0B;
+  padding: 48px 0;
+}
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 780px;
+}
+.faq-item {
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px;
+  padding: 0 18px;
+}
+.faq-item[open] { border-color: rgba(225,29,42,.45); }
+.faq-item summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 16px 0;
+  font-family: var(--header-fonts);
+  font-size: 14px;
+  letter-spacing: .03em;
+  color: var(--white);
+  position: relative;
+  padding-right: 28px;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after {
+  content: '+';
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--red);
+  font-size: 20px;
+}
+.faq-item[open] summary::after { content: '−'; }
+.faq-item p {
+  color: var(--silver);
+  line-height: 1.7;
+  font-size: 14px;
+  margin: 0;
+  padding: 0 0 16px;
+}

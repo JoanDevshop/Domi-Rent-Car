@@ -3,6 +3,8 @@
 // Para SPA Vite: side-effects en document.head al cambiar de view.
 // ============================================================
 
+import { CITY_PAGES, homeFaqs } from './cities';
+
 const fmtUSD = (n) => `US$${Number(n).toLocaleString('en-US')}`;
 
 function setMeta(selector, attr, value) {
@@ -50,6 +52,10 @@ export function applySeo({ view, vehicles, businessInfo: bi }) {
     title = `Sobre Nosotros · ${businessName}`;
     description = bi?.aboutSubtitle ||
       'Conoce nuestra historia. Tu socio de confianza en renta de vehículos en República Dominicana.';
+  } else if (view?.name === 'city' && CITY_PAGES[view.slug]) {
+    const page = CITY_PAGES[view.slug];
+    title = page.title;
+    description = page.metaDescription;
   } else if (view?.name === 'admin') {
     title = `Admin · ${businessName}`;
     description = 'Panel administrativo.';
@@ -95,14 +101,21 @@ function applyJsonLd({ view, vehicles, bi, baseUrl }) {
     "priceRange": "$$",
     "address": {
       "@type": "PostalAddress",
-      "streetAddress": bi?.address || "",
+      "streetAddress": bi?.address || "Av. Víctor Manuel Espaillat",
+      "addressLocality": "Santiago de los Caballeros",
+      "addressRegion": "Santiago",
       "addressCountry": "DO"
     },
     "areaServed": [
       { "@type": "Country", "name": "República Dominicana" },
+      { "@type": "City", "name": "Santiago de los Caballeros" },
       { "@type": "City", "name": "Santo Domingo" },
-      { "@type": "City", "name": "Punta Cana" }
+      { "@type": "City", "name": "Punta Cana" },
+      { "@type": "City", "name": "Puerto Plata" }
     ],
+    "sameAs": bi?.instagram
+      ? [`https://www.instagram.com/${String(bi.instagram).replace(/^@/, '')}/`]
+      : undefined,
     "aggregateRating": bi?.rating ? {
       "@type": "AggregateRating",
       "ratingValue": String(bi.rating),
@@ -149,6 +162,29 @@ function applyJsonLd({ view, vehicles, bi, baseUrl }) {
     // Quitar el vehicle LD si no estamos en detalle
     const old = document.getElementById('ld-vehicle');
     if (old) old.remove();
+  }
+
+  // FAQPage LD — home y city pages (mismo texto visible que <FaqSection>)
+  let faqs = null;
+  if (view?.name === 'city' && CITY_PAGES[view.slug]) {
+    faqs = CITY_PAGES[view.slug].faqs;
+  } else if (!view?.name || view.name === 'home') {
+    const min = Math.min(...(vehicles || []).filter(v => v.available).map(v => Number(v.pricePerDay)));
+    faqs = homeFaqs(bi, min);
+  }
+  if (faqs?.length) {
+    replaceLd('ld-faq', {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": faqs.map(f => ({
+        "@type": "Question",
+        "name": f.q,
+        "acceptedAnswer": { "@type": "Answer", "text": f.a }
+      }))
+    });
+  } else {
+    const oldFaq = document.getElementById('ld-faq');
+    if (oldFaq) oldFaq.remove();
   }
 }
 

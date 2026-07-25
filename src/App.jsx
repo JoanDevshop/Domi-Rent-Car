@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { DEFAULT_BUSINESS_INFO } from './data';
 import { applySeo } from './seo';
+import { CITY_PAGES, homeFaqs } from './cities';
 import {
   fetchVehicles, upsertVehicle, deleteVehicle, setVehicleAvailability,
   fetchBusinessInfo, updateBusinessInfo,
@@ -96,6 +97,7 @@ function pathForView(v, vehicles) {
   if (v.name === 'vehicle') { const veh = vehicles.find(x => x.id === v.id); return `/vehiculo/${veh ? slugify(veh.name) : v.id}`; }
   if (v.name === 'about') return '/nosotros';
   if (v.name === 'admin') return '/admin';
+  if (v.name === 'city') return `/${v.slug}`;
   return '/';
 }
 function viewForPath(path, vehicles) {
@@ -103,6 +105,8 @@ function viewForPath(path, vehicles) {
   if (m) { const key = decodeURIComponent(m[1]); const veh = vehicles.find(x => slugify(x.name) === key || x.id === key); return veh ? { name: 'vehicle', id: veh.id } : { name: 'home' }; }
   if (path.startsWith('/nosotros')) return { name: 'about' };
   if (path.startsWith('/admin')) return { name: 'admin' };
+  const citySlug = path.replace(/^\/|\/$/g, '');
+  if (CITY_PAGES[citySlug]) return { name: 'city', slug: citySlug };
   return { name: 'home' };
 }
 
@@ -231,6 +235,7 @@ function DomiPhone({ ctx }) {
         {view.name === "vehicle" && <VehicleScreen ctx={ctx} vehicleId={view.id} />}
         {view.name === "admin" && <AdminScreen ctx={ctx} />}
         {view.name === "about" && <AboutScreen ctx={ctx} />}
+        {view.name === "city" && <CityScreen ctx={ctx} slug={view.slug} />}
       </div>
     </div>
   );
@@ -415,6 +420,9 @@ function HomeScreen({ ctx }) {
         </div>
       </section>
 
+      {/* FAQ */}
+      <FaqSection faqs={homeFaqs(bi, Math.min(...vehicles.filter(v => v.available).map(v => Number(v.pricePerDay))))} />
+
       {/* CTA BANNER */}
       <section className="cta-banner" id="contact-section">
         <div className="container">
@@ -462,8 +470,21 @@ function SiteFooter({ ctx }) {
             <ul>
               <li><a onClick={() => document.getElementById('catalog-section')?.scrollIntoView({ behavior: 'smooth' })}>Catálogo</a></li>
               <li><a onClick={() => document.getElementById('why-section')?.scrollIntoView({ behavior: 'smooth' })}>¿Por qué nosotros?</a></li>
-              <li><a onClick={() => goto({ name: 'about' })}>Sobre nosotros</a></li>
+              <li><a href="/nosotros" onClick={(e) => { e.preventDefault(); goto({ name: 'about' }); }}>Sobre nosotros</a></li>
               <li><a onClick={() => goto({ name: 'admin' })}>Admin</a></li>
+            </ul>
+          </div>
+
+          <div className="footer-col">
+            <h4>ZONAS DE ENTREGA</h4>
+            <ul>
+              {Object.entries(CITY_PAGES).map(([slug, p]) => (
+                <li key={slug}>
+                  <a href={`/${slug}`} onClick={(e) => { e.preventDefault(); goto({ name: 'city', slug }); }}>
+                    Renta de carros en {p.city}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -492,6 +513,110 @@ function SiteFooter({ ctx }) {
         </div>
       </div>
     </footer>
+  );
+}
+
+function FaqSection({ faqs, title = 'PREGUNTAS FRECUENTES' }) {
+  if (!faqs?.length) return null;
+  return (
+    <section className="faq-section">
+      <div className="container">
+        <div className="section-head">
+          <h2><span className="accent-bar" />{title}</h2>
+          <span className="section-sub">Resolvemos tus dudas</span>
+        </div>
+        <div className="faq-list">
+          {faqs.map((f, i) => (
+            <details className="faq-item" key={i}>
+              <summary>{f.q}</summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Landing SEO local — una por ciudad/aeropuerto (ver src/cities.js)
+function CityScreen({ ctx, slug }) {
+  const { vehicles, businessInfo: bi, goto } = ctx;
+  const page = CITY_PAGES[slug];
+  if (!page) return null;
+  const avail = vehicles.filter(v => v.available);
+  const waMsg = `Hola ${bi.name}, quiero rentar un vehículo en ${page.city}.`;
+  return (
+    <div className="home city-page">
+      <nav className="top-nav scrolled">
+        <div className="nav-container">
+          <a className="nav-logo" href="/" onClick={(e) => { e.preventDefault(); goto({ name: 'home' }); }}>
+            <img src="/assets/logo.png" alt={bi.name} />
+          </a>
+          <div className="nav-actions">
+            <a className="nav-phone" href={`tel:${(bi.phone || '').replace(/\s|\(|\)|-/g, "")}`}>
+              <Icon name="phone" size={14} /> {bi.phone}
+            </a>
+            <a className="btn wa-primary" href={waLink(bi.whatsapp, waMsg)} target="_blank" rel="noreferrer">
+              <Icon name="whatsapp" size={16} color="#fff" />
+              <span>WHATSAPP</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <header className="city-hero">
+        <div className="container">
+          <span className="hero-eyebrow">{page.eyebrow}</span>
+          <h1>{page.h1}</h1>
+          {page.intro.map((p, i) => <p key={i}>{p}</p>)}
+          <div className="hero-ctas">
+            <a className="btn wa-primary big" href={waLink(bi.whatsapp, waMsg)} target="_blank" rel="noreferrer">
+              <Icon name="whatsapp" size={20} color="#fff" />
+              <span>RESERVAR POR WHATSAPP</span>
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <section className="catalog-section">
+        <div className="container">
+          <div className="section-head">
+            <h2><span className="accent-bar" />VEHÍCULOS DISPONIBLES</h2>
+            <span className="section-sub">{avail.length} disponibles para entrega en {page.city}</span>
+          </div>
+          <div className="grid">
+            {avail.map(v => (
+              <VehicleCard key={v.id} v={v} onClick={() => goto({ name: 'vehicle', id: v.id })} />
+            ))}
+            {avail.length === 0 && <div className="empty">Cargando…</div>}
+          </div>
+        </div>
+      </section>
+
+      <FaqSection faqs={page.faqs} />
+
+      <section className="cta-banner">
+        <div className="container">
+          <div className="cta-content">
+            <h2>¿LISTO PARA ARRANCAR EN {page.city.toUpperCase()}?</h2>
+            <p>Reserva tu vehículo ahora por WhatsApp. Sin formularios, sin esperas — respuesta inmediata.</p>
+            <div className="cta-actions">
+              <a className="btn wa-primary big" href={waLink(bi.whatsapp, waMsg)} target="_blank" rel="noreferrer">
+                <Icon name="whatsapp" size={20} color="#fff" />
+                <span>WHATSAPP DIRECTO</span>
+              </a>
+              <a className="btn ghost-light big" href={`tel:${(bi.phone || '').replace(/\s|\(|\)|-/g, "")}`}>
+                <Icon name="phone" size={16} />
+                <span>{bi.phone}</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <SiteFooter ctx={ctx} />
+      <FloatingWA wa={bi.whatsapp} biName={bi.name} />
+    </div>
   );
 }
 
