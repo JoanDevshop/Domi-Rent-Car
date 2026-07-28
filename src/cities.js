@@ -9,11 +9,11 @@ export const CITY_PAGES = {
     city: 'Santiago',
     eyebrow: 'RENT A CAR · SANTIAGO DE LOS CABALLEROS',
     h1: 'Renta de Carros en Santiago de los Caballeros',
-    title: 'Renta de Carros en Santiago | Rent a Car Santiago RD — DOMI RENT CAR',
-    metaDescription: 'Rent a car en Santiago de los Caballeros con oficina local. SUVs, jeepetas y sedanes. Reserva por WhatsApp y recibe tu vehículo en minutos. Entrega en el aeropuerto del Cibao.',
+    title: 'Renta de Carros en Santiago | Alquiler de Coches y Vehículos — DOMI RENT CAR',
+    metaDescription: 'Agencia de alquiler de coches en Santiago de los Caballeros. Rent a car con oficina local: SUVs, jeepetas y sedanes. Alquiler de vehículos por WhatsApp con entrega en el aeropuerto del Cibao.',
     intro: [
-      'DOMI RENT CAR es tu rent a car en Santiago de los Caballeros. Estamos en la Av. Víctor Manuel Espaillat, con una flota de SUVs, jeepetas y sedanes lista para entrega inmediata en cualquier punto de la ciudad.',
-      'Reserva por WhatsApp sin formularios ni esperas: eliges tu vehículo, coordinamos la entrega y manejas. También entregamos en el Aeropuerto Internacional del Cibao (STI) y en toda la región: Puerto Plata, La Vega, Moca y el resto del Cibao. Car rental in Santiago, Dominican Republic — English assistance available via WhatsApp.',
+      'DOMI RENT CAR es tu agencia de alquiler de coches en Santiago de los Caballeros. Como empresa de alquiler de vehículos con oficina local en la Av. Víctor Manuel Espaillat, tenemos una flota de SUVs, jeepetas y sedanes lista para entrega inmediata en cualquier punto de la ciudad.',
+      'Entre las agencias de alquileres de coche en Santiago, somos la que reserva por WhatsApp sin formularios ni esperas: eliges tu vehículo, coordinamos la entrega y manejas. También entregamos en el Aeropuerto Internacional del Cibao (STI) y en toda la región: Puerto Plata, La Vega, Moca y el resto del Cibao. Car rentals in Santiago — a local car rental company in Santiago, Dominican Republic, with English assistance available via WhatsApp.',
     ],
     faqs: [
       { q: '¿Dónde están ubicados en Santiago?', a: 'Nuestra oficina está en la Av. Víctor Manuel Espaillat, Santiago de los Caballeros. También llevamos el vehículo hasta donde estés: hotel, residencia o el aeropuerto del Cibao.' },
@@ -27,10 +27,10 @@ export const CITY_PAGES = {
     city: 'Santo Domingo',
     eyebrow: 'RENT A CAR · SANTO DOMINGO',
     h1: 'Renta de Carros en Santo Domingo',
-    title: 'Renta de Carros en Santo Domingo | Rent a Car RD — DOMI RENT CAR',
-    metaDescription: 'Alquiler de vehículos en Santo Domingo con entrega a domicilio. SUVs, jeepetas y sedanes premium. Reserva por WhatsApp — entrega en la capital y el aeropuerto Las Américas.',
+    title: 'Renta de Carros en Santo Domingo | Alquiler de Coches RD — DOMI RENT CAR',
+    metaDescription: 'Alquileres de coches en Santo Domingo con entrega a domicilio. SUVs, jeepetas y sedanes premium. Rent a car por WhatsApp — entrega en la capital y el aeropuerto Las Américas.',
     intro: [
-      'Renta un carro en Santo Domingo sin complicaciones. DOMI RENT CAR entrega vehículos en toda la capital: el Distrito Nacional, Santo Domingo Este, Norte y Oeste, directo a tu hotel, oficina o residencia.',
+      'Renta un carro en Santo Domingo sin complicaciones. DOMI RENT CAR ofrece alquileres de coches en toda la capital: entregamos en el Distrito Nacional, Santo Domingo Este, Norte y Oeste, directo a tu hotel, oficina o residencia.',
       'Nuestra flota incluye SUVs y jeepetas para la familia, sedanes ejecutivos para viajes de negocio y vehículos premium para ocasiones especiales. Reserva por WhatsApp y coordina la entrega — también en el Aeropuerto Internacional Las Américas (SDQ).',
     ],
     faqs: [
@@ -45,10 +45,10 @@ export const CITY_PAGES = {
     city: 'Punta Cana',
     eyebrow: 'RENT A CAR · PUNTA CANA',
     h1: 'Renta de Carros en Punta Cana',
-    title: 'Renta de Carros en Punta Cana | Rent a Car Punta Cana — DOMI RENT CAR',
-    metaDescription: 'Rent a car en Punta Cana y Bávaro. Recibe tu vehículo en el aeropuerto PUJ o tu resort. SUVs y jeepetas con cobertura total. Reserva fácil por WhatsApp.',
+    title: 'Renta de Carros en Punta Cana | Rent Car y Alquiler de Coches — DOMI RENT CAR',
+    metaDescription: 'Rent car en Punta Cana y Bávaro. Alquileres de coche con entrega en el aeropuerto PUJ o tu resort. SUVs y jeepetas con cobertura total. Reserva fácil por WhatsApp.',
     intro: [
-      'Explora Punta Cana a tu ritmo. Con DOMI RENT CAR recibes tu vehículo en el Aeropuerto Internacional de Punta Cana (PUJ), en tu resort o villa en Bávaro, Cap Cana o Uvero Alto — aterrizas, firmas y manejas.',
+      'Explora Punta Cana a tu ritmo. Con DOMI RENT CAR el alquiler de coche es simple: recibes tu vehículo en el Aeropuerto Internacional de Punta Cana (PUJ), en tu resort o villa en Bávaro, Cap Cana o Uvero Alto — aterrizas, firmas y manejas.',
       'Una jeepeta o SUV propia te da libertad total: playas vírgenes, Hoyo Azul, Macao, excursiones a Samaná o La Romana, sin depender de taxis ni excursiones con horario. Reserva por WhatsApp antes de tu viaje y te esperamos con todo listo.',
     ],
     faqs: [
@@ -56,6 +56,24 @@ export const CITY_PAGES = {
       { q: '¿Puedo recibir el carro en mi resort en Bávaro?', a: 'Claro, entregamos en resorts y villas de toda la zona: Bávaro, Cap Cana, Uvero Alto y Punta Cana centro.' },
       { q: '¿Conviene rentar un carro en Punta Cana?', a: 'Si quieres salir del resort, sí: playas, excursiones y restaurantes quedan dispersos y los taxis turísticos son caros. Un vehículo propio te da libertad y suele salir más económico en estadías de varios días.' },
       { q: '¿El seguro está incluido?', a: 'Cada renta incluye cobertura — sin costos ocultos el día de la entrega. Los detalles de tu reserva te los confirmamos por WhatsApp antes de pagar.' },
+    ],
+  },
+
+  'renta-de-carros-puerto-plata': {
+    city: 'Puerto Plata',
+    eyebrow: 'RENT A CAR · PUERTO PLATA',
+    h1: 'Renta de Carros en Puerto Plata',
+    title: 'Renta de Carros en Puerto Plata | Alquiler de Coches — DOMI RENT CAR',
+    metaDescription: 'Alquileres de coches en Puerto Plata. Rent a car con entrega en el aeropuerto Gregorio Luperón (POP), tu hotel o Playa Dorada. SUVs y jeepetas. Reserva por WhatsApp.',
+    intro: [
+      'Renta un carro en Puerto Plata y recorre la costa norte a tu ritmo. DOMI RENT CAR entrega alquileres de coches en el Aeropuerto Internacional Gregorio Luperón (POP), Playa Dorada, Sosúa, Cabarete y toda la zona.',
+      'Estamos a solo una hora de Puerto Plata desde nuestra base en Santiago, así que coordinamos la entrega de tu SUV, jeepeta o sedán sin complicaciones. Reserva por WhatsApp con tus fechas y te confirmamos al momento. Car rental in Puerto Plata — English assistance via WhatsApp.',
+    ],
+    faqs: [
+      { q: '¿Entregan en el aeropuerto de Puerto Plata (POP)?', a: 'Sí. Envíanos tu itinerario por WhatsApp y te recibimos en el Aeropuerto Internacional Gregorio Luperón con el vehículo listo a tu llegada.' },
+      { q: '¿Entregan en Sosúa y Cabarete?', a: 'Claro, entregamos en toda la costa norte: Puerto Plata centro, Playa Dorada, Costambar, Sosúa y Cabarete — en tu hotel, villa o donde estés.' },
+      { q: '¿Puedo rentar en Puerto Plata y devolver en Santiago?', a: 'Sí, según disponibilidad coordinamos entrega y devolución en puntos distintos, incluyendo Santiago y el aeropuerto del Cibao. Consúltanos por WhatsApp.' },
+      { q: '¿Qué necesito para alquilar un coche en Puerto Plata?', a: 'Licencia de conducir vigente y documento de identidad o pasaporte. Reservas por WhatsApp y te confirmamos los requisitos de tu renta en minutos.' },
     ],
   },
 
